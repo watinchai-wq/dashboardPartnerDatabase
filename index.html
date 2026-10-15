@@ -1,0 +1,1439 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard ภาคีดำเนินการ</title>
+<meta name="description" content="Dashboard ฐานข้อมูลภาคีดำเนินการ รวม 4 ประเด็น ดึงข้อมูลจาก Google Sheets">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<style>
+/* ---------- Tokens ---------- */
+:root{
+  color-scheme: light;
+  --font:"IBM Plex Sans Thai","Leelawadee UI","Noto Sans Thai",Tahoma,system-ui,sans-serif;
+  --page:#f2f4fa;
+  --surface:#ffffff;
+  --surface-2:#f6f7fb;
+  --surface-3:#eaecf3;
+  --ink:#0b0b0b;
+  --ink-2:#52514e;
+  --muted:#6b6a65;
+  --grid:#e1e0d9;
+  --axis:#c3c2b7;
+  --border:rgba(11,11,11,.09);
+  --shadow:0 1px 2px rgba(20,24,60,.05),0 8px 24px rgba(20,24,60,.06);
+  --shadow-lg:0 12px 32px rgba(20,24,60,.16);
+  /* ประเด็น (categorical — validated light) */
+  --i1:#6250d6; --i2:#1baf7a; --i3:#e34948; --i4:#eda100;
+  --i5:#2a78d6; --i6:#eb6834; --i7:#e87ba4; --i8:#008300; --i0:#9a988f;
+  /* sequential (blue) */
+  --seq1:#b7d3f6; --seq2:#86b6ef; --seq3:#5598e7; --seq4:#2a78d6; --seq5:#1c5cab;
+  --seq-ink1:#0b0b0b; --seq-ink2:#0b0b0b; --seq-ink3:#0b0b0b; --seq-ink4:#ffffff; --seq-ink5:#ffffff;
+  --meter:#2a78d6; --meter-track:#cde2fb;
+  /* status (fixed) */
+  --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+  --accent:#4f46e5;
+  --accent-grad:linear-gradient(135deg,#6366f1 0%,#3b82f6 55%,#06b6d4 100%);
+  --hero:linear-gradient(118deg,#1e1b4b 0%,#3730a3 36%,#2563eb 70%,#0891b2 100%);
+  --focus:0 0 0 3px rgba(79,70,229,.35);
+  --radius:18px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222220; --surface-3:#2c2c2a;
+    --ink:#f0efec; --ink-2:#c3c2b7; --muted:#a3a198;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.25);
+    --shadow-lg:0 12px 32px rgba(0,0,0,.55);
+    --i1:#9085e9; --i2:#199e70; --i3:#e34948; --i4:#c98500;
+    --i5:#3987e5; --i6:#d95926; --i7:#d55181; --i8:#008300; --i0:#6f6d66;
+    --seq1:#184f95; --seq2:#1c5cab; --seq3:#2a78d6; --seq4:#5598e7; --seq5:#9ec5f4;
+    --seq-ink1:#ffffff; --seq-ink2:#ffffff; --seq-ink3:#ffffff; --seq-ink4:#0b0b0b; --seq-ink5:#0b0b0b;
+    --meter:#3987e5; --meter-track:#104281;
+    --accent:#818cf8;
+    --hero:linear-gradient(118deg,#0c0a26 0%,#221d68 38%,#1d4ed8 74%,#0e7490 100%);
+    --focus:0 0 0 3px rgba(129,140,248,.45);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222220; --surface-3:#2c2c2a;
+  --ink:#f0efec; --ink-2:#c3c2b7; --muted:#a3a198;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.25);
+  --shadow-lg:0 12px 32px rgba(0,0,0,.55);
+  --i1:#9085e9; --i2:#199e70; --i3:#e34948; --i4:#c98500;
+  --i5:#3987e5; --i6:#d95926; --i7:#d55181; --i8:#008300; --i0:#6f6d66;
+  --seq1:#184f95; --seq2:#1c5cab; --seq3:#2a78d6; --seq4:#5598e7; --seq5:#9ec5f4;
+  --seq-ink1:#ffffff; --seq-ink2:#ffffff; --seq-ink3:#ffffff; --seq-ink4:#0b0b0b; --seq-ink5:#0b0b0b;
+  --meter:#3987e5; --meter-track:#104281;
+  --accent:#818cf8;
+  --hero:linear-gradient(118deg,#0c0a26 0%,#221d68 38%,#1d4ed8 74%,#0e7490 100%);
+  --focus:0 0 0 3px rgba(129,140,248,.45);
+}
+
+/* ---------- Base ---------- */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--page);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+.wrap{max-width:1360px;margin:0 auto;padding:0 24px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:none;box-shadow:var(--focus)}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;overflow:hidden;background:var(--hero);color:#fff;padding:26px 0 96px}
+.orb{position:absolute;border-radius:50%;filter:blur(64px);opacity:.5;pointer-events:none}
+.orb.o1{width:380px;height:380px;background:#8b5cf6;top:-170px;right:12%}
+.orb.o2{width:300px;height:300px;background:#14b8a6;bottom:-200px;left:-60px}
+.orb.o3{width:240px;height:240px;background:#f43f5e;top:-120px;left:38%;opacity:.28}
+.orb.o4{width:260px;height:260px;background:#f59e0b;bottom:-190px;right:-40px;opacity:.32}
+.hero-grid{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.12) 1px,transparent 1px);background-size:22px 22px;mask-image:linear-gradient(180deg,rgba(0,0,0,.7),transparent 85%);pointer-events:none}
+.hero-top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.brand{display:flex;gap:16px;align-items:center;min-width:0}
+.logo{flex:none;width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);backdrop-filter:blur(8px)}
+.eyebrow{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.82;font-weight:500}
+h1{margin:0;font-size:clamp(22px,3.2vw,32px);font-weight:700;line-height:1.25}
+.hero-sub{margin:4px 0 0;opacity:.88;font-size:14.5px}
+.hero-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:6px 14px 6px 8px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.26);font-size:13px;backdrop-filter:blur(8px);color:#fff}
+.st-ico{flex:none;width:22px;height:22px;border-radius:50%;background:#fff;display:grid;place-items:center}
+.status[data-kind="live"] .st-ico{color:var(--good)}
+.status[data-kind="snapshot"] .st-ico{color:#b07800}
+.status[data-kind="error"] .st-ico{color:var(--critical)}
+.status[data-kind="loading"] .st-ico{color:var(--accent)}
+.status[data-kind="loading"] .st-ico svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.icon-btn{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.26);color:#fff;backdrop-filter:blur(8px);transition:background .15s}
+.icon-btn:hover{background:rgba(255,255,255,.26)}
+.icon-btn.spinning svg{animation:spin .9s linear infinite}
+
+/* ---------- Layout ---------- */
+main{position:relative;z-index:2;margin-top:-72px;padding-bottom:40px;transition:opacity .2s}
+body.busy main{opacity:.55}
+.banner{display:none;align-items:flex-start;gap:12px;background:var(--surface);border:1px solid color-mix(in srgb,var(--critical) 40%,var(--border));border-left:4px solid var(--critical);border-radius:14px;padding:12px 16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.banner.show{display:flex}
+.banner .b-ico{color:var(--critical);flex:none;margin-top:2px}
+.banner p{margin:0;font-size:14px}
+.banner .b-sub{color:var(--ink-2);font-size:13px}
+.banner button{margin-left:auto;flex:none}
+
+/* ---------- Filters ---------- */
+.filters{position:sticky;top:10px;z-index:30;background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.frow{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{--c:var(--accent);display:inline-flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);font-size:14px;transition:background .15s,border-color .15s}
+.chip:hover{border-color:color-mix(in srgb,var(--c) 60%,var(--border))}
+.chip .sw{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.chip .n{font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink-2);background:var(--surface-2);padding:0 8px;border-radius:999px;min-width:26px;text-align:center}
+.chip[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 14%,var(--surface));border-color:var(--c);font-weight:600}
+.chip[aria-pressed="true"] .n{background:var(--surface)}
+.chip.all{--c:var(--ink-2)}
+.fmeta{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-2)}
+.fmeta b{color:var(--ink);font-weight:600}
+.controls{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) minmax(240px,1.6fr);gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>span{font-size:12px;color:var(--ink-2)}
+.field select,.inp{width:100%;height:38px;border:1px solid var(--border);border-radius:11px;background:var(--surface-2);padding:0 10px;min-width:0}
+.field select.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface-2));font-weight:600}
+.inp{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.inp input{flex:1;border:0;background:transparent;height:100%;outline:none;min-width:0;color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-size:13px;color:var(--ink);white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent-grad);color:#fff;border:0}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn:disabled{opacity:.45;cursor:default}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin-top:14px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;min-width:0}
+.kpi::after{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--accent-grad);opacity:.9}
+.kpi.lead{grid-column:span 2}
+.kpi .label{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink-2)}
+.kpi .k-ico{flex:none;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--accent-grad);color:#fff}
+.kpi .value{font-size:30px;font-weight:700;line-height:1.15;margin-top:10px;letter-spacing:-.01em}
+.kpi .value small{font-size:15px;font-weight:600;color:var(--ink-2);margin-left:6px}
+.kpi.lead .value{font-size:56px;line-height:1}
+.kpi .foot{font-size:12.5px;color:var(--ink-2);margin-top:6px}
+.meter{height:8px;border-radius:99px;background:var(--meter-track);margin-top:12px;overflow:hidden}
+.meter>span{display:block;height:100%;background:var(--meter);border-radius:99px;transition:width .5s}
+.comp{display:flex;gap:2px;height:12px;margin-top:16px}
+.comp i{display:block;height:100%;min-width:3px;transition:flex-grow .4s}
+.comp i:first-child{border-radius:4px 0 0 4px}
+.comp i:last-child{border-radius:0 4px 4px 0}
+.comp i:only-child{border-radius:4px}
+.comp-legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:10px;font-size:12.5px;color:var(--ink-2)}
+.comp-legend span{display:inline-flex;align-items:center;gap:6px}
+.comp-legend i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.comp-legend b{color:var(--ink);font-weight:600}
+
+/* ---------- Issue cards ---------- */
+.issues{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:14px}
+.issue{--c:var(--i1);position:relative;overflow:hidden;background:linear-gradient(165deg,color-mix(in srgb,var(--c) 13%,var(--surface)) 0%,var(--surface) 62%);border:1px solid color-mix(in srgb,var(--c) 26%,var(--border));border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s,box-shadow .15s,opacity .2s;min-width:0}
+.issue:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.issue::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--c)}
+.issue[aria-pressed="true"]{box-shadow:0 0 0 2px var(--c),var(--shadow-lg)}
+.issues.has-sel .issue[aria-pressed="false"]{opacity:.5}
+.issue .top{display:flex;align-items:center;gap:12px}
+.issue .ic{flex:none;width:44px;height:44px;border-radius:13px;background:var(--c);color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px color-mix(in srgb,var(--c) 35%,transparent)}
+.issue h3{margin:0;font-size:16.5px;font-weight:600;line-height:1.3}
+.issue .sub{font-size:12.5px;color:var(--ink-2)}
+.issue .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:14px}
+.issue .count{font-size:38px;font-weight:700;line-height:1}
+.issue .count small{font-size:14px;font-weight:500;color:var(--ink-2);margin-left:6px}
+.issue .share{font-size:13px;color:var(--ink-2);font-weight:500}
+.issue .bar{height:6px;border-radius:99px;background:var(--surface-3);margin-top:10px;overflow:hidden}
+.issue .bar span{display:block;height:100%;background:var(--c);border-radius:99px;transition:width .5s}
+.issue .meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.issue .meta div{background:color-mix(in srgb,var(--surface-2) 80%,transparent);border:1px solid var(--border);border-radius:10px;padding:6px 10px}
+.issue .meta b{display:block;font-size:16px;line-height:1.2}
+.issue .meta span{font-size:11.5px;color:var(--ink-2)}
+.issue .tops{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 9px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border);color:var(--ink-2);white-space:nowrap}
+.tag b{color:var(--ink);font-weight:600}
+
+/* ---------- Cards ---------- */
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px;margin-top:14px}
+.card{grid-column:span 6;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;min-width:0;display:flex;flex-direction:column}
+.card.w5{grid-column:span 5}.card.w7{grid-column:span 7}.card.w12{grid-column:1/-1}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px 14px;flex-wrap:wrap;margin-bottom:14px}
+.card-title{display:flex;gap:12px;align-items:flex-start;min-width:0}
+.c-ico{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--accent-grad);color:#fff}
+.card h2{margin:0;font-size:16px;font-weight:600;line-height:1.35}
+.hint{margin:2px 0 0;font-size:12.5px;color:var(--ink-2)}
+.card-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.legend i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;padding:2px;background:var(--surface-2)}
+.seg button{border:0;background:transparent;border-radius:8px;padding:3px 10px;font-size:12px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.card-body{flex:1;min-width:0}
+.empty{padding:28px 12px;text-align:center;color:var(--muted);font-size:14px}
+.note{font-size:12px;color:var(--ink-2);margin-top:12px}
+
+/* bars */
+.bars{display:flex;flex-direction:column;gap:2px}
+.brow{display:grid;grid-template-columns:var(--lw,132px) minmax(0,1fr);align-items:center;gap:12px;min-height:32px;padding:3px 8px;border-radius:9px;cursor:pointer;transition:background .12s,opacity .2s}
+.brow:hover,.brow:focus-visible{background:var(--surface-2)}
+.bars.has-sel .brow:not(.sel){opacity:.42}
+.brow.sel{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.blabel{font-size:13.5px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+.brow.sel .blabel{font-weight:600}
+.btrack{display:flex;align-items:center;gap:8px;min-width:0}
+.bstack{display:flex;gap:2px;height:18px;flex:none;transition:width .45s cubic-bezier(.2,.7,.2,1)}
+.bstack i{display:block;height:100%;min-width:3px}
+.bstack i:last-child{border-radius:0 4px 4px 0}
+.bval{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* tile map */
+.map-wrap{display:flex;flex-direction:column;align-items:center}
+.tmap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;width:100%;max-width:520px}
+.tile{aspect-ratio:1.12;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4px;background:var(--surface-2);border:1px dashed var(--grid);color:var(--muted);transition:transform .12s,box-shadow .12s,opacity .2s;min-width:0}
+.tile.on{border:0;cursor:pointer}
+.tile.on:hover,.tile.on:focus-visible{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.tmap.has-sel .tile.on:not(.sel){opacity:.45}
+.tile.sel{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--ink)}
+.tile .nm{font-size:12px;line-height:1.2;font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .ab{display:none}
+.tile .ct{font-size:20px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
+.scale{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12px;color:var(--ink-2);flex-wrap:wrap;justify-content:center}
+.scale .st{display:flex;flex-direction:column;align-items:center;gap:3px}
+.scale .st i{width:44px;height:10px;border-radius:3px}
+.map-sum{display:grid;grid-template-columns:auto 1fr;gap:10px;width:100%;max-width:520px;margin-top:16px}
+.map-sum>div{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:8px 12px;min-width:0}
+.map-sum b{display:block;font-size:14px;font-weight:600;line-height:1.35}
+.map-sum span{font-size:12px;color:var(--ink-2)}
+
+/* heatmap */
+.heat{display:grid;gap:4px;min-width:560px}
+.heat-wrap{overflow-x:auto}
+.heat .hh{font-size:12px;color:var(--ink-2);text-align:center;align-self:end;padding:0 4px 4px;line-height:1.3}
+.heat .rl{display:flex;align-items:center;gap:8px;font-size:13.5px;padding-right:8px;min-width:0}
+.heat .rl i{flex:none;width:10px;height:10px;border-radius:3px;background:var(--c)}
+.heat .rl.total{font-weight:600}
+.heat .hc{border-radius:9px;min-height:40px;display:grid;place-items:center;font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;cursor:default}
+.heat .hc.zero{background:var(--surface-2);color:var(--muted);border:1px dashed var(--grid)}
+
+/* data tables */
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:9px 12px;text-align:left;vertical-align:top}
+thead th{position:sticky;top:0;z-index:1;background:var(--surface-2);font-weight:600;color:var(--ink-2);font-size:12.5px;white-space:nowrap;border-bottom:1px solid var(--grid)}
+tbody td{border-bottom:1px solid var(--grid)}
+tbody tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.mini-tbl td.n b{font-weight:600}
+.dir thead th[data-sort]{cursor:pointer;user-select:none}
+.dir thead th[data-sort]:hover{color:var(--ink)}
+.dir thead th .arr{opacity:.35;margin-left:4px;font-size:11px}
+.dir thead th.sorted .arr{opacity:1;color:var(--accent)}
+.dir tbody tr{cursor:pointer;transition:background .1s}
+.dir tbody tr:hover{background:var(--surface-2)}
+.dir table{min-width:1080px}
+.dir td.idx{color:var(--muted);font-variant-numeric:tabular-nums;width:44px}
+.org{font-weight:500}
+.org-type{display:block;font-size:12px;color:var(--ink-2);margin-top:2px}
+.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:300px}
+.ibadge{--c:var(--i1);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12.5px;padding:2px 10px 2px 8px;border-radius:999px;background:color-mix(in srgb,var(--c) 13%,transparent);border:1px solid color-mix(in srgb,var(--c) 30%,transparent)}
+.ibadge i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.btag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:7px;background:var(--surface-3);margin:1px 4px 1px 0;white-space:nowrap}
+.dim{color:var(--muted)}
+a.tel{color:var(--accent);text-decoration:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+a.tel:hover{text-decoration:underline}
+.tbl-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--ink-2)}
+.pager .pg{display:flex;align-items:center;gap:6px}
+.pager select{height:34px;border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:0 8px}
+
+/* tooltip */
+#tip{position:fixed;left:0;top:0;z-index:100;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--border);box-shadow:var(--shadow-lg);border-radius:12px;padding:10px 12px;font-size:13px;min-width:180px;max-width:320px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s}
+#tip.show{opacity:1;transform:none}
+#tip .tt{font-weight:600;margin-bottom:6px;line-height:1.35}
+#tip .tr{display:grid;grid-template-columns:14px auto 1fr;align-items:center;gap:8px;line-height:1.7}
+#tip .tr .k{width:14px;height:3px;border-radius:2px}
+#tip .tr b{font-variant-numeric:tabular-nums;font-weight:700}
+#tip .tr span:last-child{color:var(--ink-2)}
+#tip .tr.zero{opacity:.45}
+#tip .tr.hl span:last-child{color:var(--ink);font-weight:600}
+#tip .tot{display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--grid);margin-top:6px;padding-top:6px;color:var(--ink-2)}
+#tip .tot b{color:var(--ink)}
+#tip .tsub{color:var(--ink-2)}
+
+/* dialog */
+dialog{border:0;border-radius:20px;padding:0;width:min(600px,calc(100% - 32px));background:var(--surface);color:var(--ink);box-shadow:var(--shadow-lg)}
+dialog::backdrop{background:rgba(10,12,30,.5);backdrop-filter:blur(2px)}
+.dlg-head{--c:var(--i1);position:relative;padding:20px 56px 18px 22px;background:linear-gradient(165deg,color-mix(in srgb,var(--c) 16%,var(--surface)),var(--surface));border-bottom:1px solid var(--border)}
+.dlg-head h3{margin:10px 0 2px;font-size:19px;line-height:1.35}
+.dlg-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);display:grid;place-items:center;color:var(--ink)}
+.dlg-body{padding:16px 22px 6px}
+.dlg-body dl{display:grid;grid-template-columns:132px 1fr;gap:10px 14px;margin:0}
+.dlg-body dt{font-size:13px;color:var(--ink-2)}
+.dlg-body dd{margin:0;font-size:14px;word-break:break-word}
+.dlg-foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:14px 22px 20px}
+
+footer{font-size:12.5px;color:var(--ink-2);padding:8px 0 36px}
+footer .wrap{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1180px){
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .kpi.lead{grid-column:1/-1}
+  .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .controls .search{grid-column:1/-1}
+}
+@media (max-width:1000px){
+  .card,.card.w5,.card.w7{grid-column:1/-1}
+}
+@media (max-width:720px){
+  .filters{position:static}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .wrap{padding:0 16px}
+  .hero{padding:20px 0 88px}
+  .logo{width:46px;height:46px;border-radius:13px}
+  .kpi.lead .value{font-size:48px}
+  .controls{grid-template-columns:1fr}
+  .brow{--lw:96px !important;gap:8px;padding:3px 4px}
+  .blabel{font-size:12.5px}
+  .tile .nm .full{display:none}
+  .tile .ab{display:inline}
+  .tile .ct{font-size:16px}
+  .dlg-body dl{grid-template-columns:1fr;gap:2px}
+  .dlg-body dd{margin-bottom:8px}
+}
+@media (max-width:420px){
+  .kpis{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition:none !important;animation:none !important}
+}
+@media print{
+  .filters,.hero-actions,.card-tools .seg,.pager,.tbl-tools .btn,.banner{display:none !important}
+  .hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .card,.kpi,.issue{break-inside:avoid;box-shadow:none}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span><span class="orb o4"></span>
+  <span class="hero-grid"></span>
+  <div class="wrap hero-top">
+    <div class="brand">
+      <div class="logo"><i data-icon="network" data-size="28"></i></div>
+      <div>
+        <div class="eyebrow">Dashboard · ฐานข้อมูลภาคี</div>
+        <h1>ภาคีดำเนินการ รวมทุกประเด็น</h1>
+        <p class="hero-sub" id="heroSub">กำลังโหลดข้อมูล…</p>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <div class="pill status" id="status" data-kind="loading" role="status" aria-live="polite">
+        <span class="st-ico"><i data-icon="loader" data-size="14"></i></span>
+        <span id="statusText">กำลังโหลด…</span>
+      </div>
+      <button class="icon-btn" id="btnRefresh" title="ดึงข้อมูลล่าสุด" aria-label="ดึงข้อมูลล่าสุด"><i data-icon="refresh"></i></button>
+      <button class="icon-btn" id="btnTheme" title="สลับโหมดสว่าง/มืด" aria-label="สลับโหมดสว่าง/มืด"><i data-icon="moon"></i></button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="banner" id="banner" role="alert">
+    <span class="b-ico"><i data-icon="alert" data-size="20"></i></span>
+    <div><p id="bannerText"></p><p class="b-sub" id="bannerSub"></p></div>
+    <button class="btn" id="btnRetry"><i data-icon="refresh" data-size="15"></i>ลองอีกครั้ง</button>
+  </div>
+
+  <section class="filters" aria-label="ตัวกรองข้อมูล">
+    <div class="frow">
+      <div class="chips" id="issueChips" role="group" aria-label="เลือกประเด็น"></div>
+      <div class="fmeta">
+        <span id="resultCount"></span>
+        <button class="btn" id="btnReset"><i data-icon="x" data-size="14"></i>ล้างตัวกรอง</button>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="field"><span>จังหวัด</span><select id="fProvince"></select></label>
+      <label class="field"><span>รับทุน สสส. (สำนัก)</span><select id="fBureau"></select></label>
+      <label class="field"><span>แหล่งทุนอื่น</span><select id="fFunder"></select></label>
+      <label class="field"><span>ประเภทองค์กร</span><select id="fOrg"></select></label>
+      <label class="field search"><span>ค้นหา</span>
+        <span class="inp"><i data-icon="search" data-size="16"></i><input id="fSearch" type="search" placeholder="ชื่อองค์กร ผู้ประสานงาน กิจกรรม ที่อยู่ เบอร์โทร…" autocomplete="off"></span>
+      </label>
+    </div>
+  </section>
+
+  <section class="kpis" id="kpis" aria-label="ตัวชี้วัดหลัก"></section>
+
+  <section class="issues" id="issues" aria-label="สรุปรายประเด็น"></section>
+
+  <div class="grid">
+    <section class="card w5" data-card="map">
+      <div class="card-head">
+        <div class="card-title"><span class="c-ico"><i data-icon="map"></i></span>
+          <div><h2>แผนที่ภาคีภาคตะวันออกเฉียงเหนือ</h2><p class="hint">ความเข้มของสี = จำนวนภาคีในจังหวัด · คลิกจังหวัดเพื่อกรอง</p></div></div>
+        <div class="card-tools"><div class="seg" data-view-for="map"></div></div>
+      </div>
+      <div class="card-body" id="mapBody"></div>
+    </section>
+
+    <section class="card w7" data-card="province">
+      <div class="card-head">
+        <div class="card-title"><span class="c-ico"><i data-icon="pin"></i></span>
+          <div><h2>จำนวนภาคีรายจังหวัด</h2><p class="hint">แยกตามประเด็น · คลิกแถวเพื่อกรอง</p></div></div>
+        <div class="card-tools"><div class="legend" data-legend></div><div class="seg" data-view-for="province"></div></div>
+      </div>
+      <div class="card-body" id="provBody"></div>
+    </section>
+
+    <section class="card" data-card="bureau">
+      <div class="card-head">
+        <div class="card-title"><span class="c-ico"><i data-icon="wallet"></i></span>
+          <div><h2>การรับทุน สสส. แยกตามสำนัก</h2><p class="hint" id="bureauHint">ภาคี 1 รายอาจรับทุนหลายสำนัก (นับทุกสำนักที่ระบุ)</p></div></div>
+        <div class="card-tools"><div class="legend" data-legend></div><div class="seg" data-view-for="bureau"></div></div>
+      </div>
+      <div class="card-body" id="bureauBody"></div>
+    </section>
+
+    <section class="card" data-card="funder">
+      <div class="card-head">
+        <div class="card-title"><span class="c-ico"><i data-icon="layers"></i></span>
+          <div><h2>แหล่งทุนอื่นนอกจาก สสส.</h2><p class="hint" id="funderHint"></p></div></div>
+        <div class="card-tools"><div class="legend" data-legend></div><div class="seg" data-view-for="funder"></div></div>
+      </div>
+      <div class="card-body" id="funderBody"></div>
+    </section>
+
+    <section class="card" data-card="org">
+      <div class="card-head">
+        <div class="card-title"><span class="c-ico"><i data-icon="building"></i></span>
+          <div><h2>ประเภทองค์กรภาคี</h2><p class="hint">จัดกลุ่มอัตโนมัติจากชื่อองค์กร/หน่วยงาน · คลิกแถวเพื่อกรอง</p></div></div>
+        <div class="card-tools"><div class="legend" data-legend></div><div class="seg" data-view-for="org"></div></div>
+      </div>
+      <div class="card-body" id="orgBody"></div>
+    </section>
+
+    <section class="card" data-card="activity">
+      <div class="card-head">
+        <div class="card-title"><span class="c-ico"><i data-icon="list"></i></span>
+          <div><h2>กิจกรรม/โครงการที่พบบ่อย</h2><p class="hint" id="actHint"></p></div></div>
+        <div class="card-tools"><div class="legend" data-legend></div><div class="seg" data-view-for="activity"></div></div>
+      </div>
+      <div class="card-body" id="actBody"></div>
+    </section>
+
+    <section class="card w12" data-card="complete">
+      <div class="card-head">
+        <div class="card-title"><span class="c-ico"><i data-icon="check-list"></i></span>
+          <div><h2>ความครบถ้วนของข้อมูลภาคี</h2><p class="hint">ร้อยละของภาคีที่กรอกข้อมูลแต่ละช่อง · ช่วยติดตามการปรับปรุงฐานข้อมูล</p></div></div>
+      </div>
+      <div class="card-body" id="completeBody"></div>
+    </section>
+
+    <section class="card w12" data-card="table">
+      <div class="card-head">
+        <div class="card-title"><span class="c-ico"><i data-icon="table"></i></span>
+          <div><h2>ทำเนียบภาคีดำเนินการ</h2><p class="hint">คลิกหัวตารางเพื่อเรียงลำดับ · คลิกแถวเพื่อดูรายละเอียด</p></div></div>
+        <div class="card-tools"><button class="btn primary" id="btnCsv"><i data-icon="download" data-size="15"></i>ดาวน์โหลด CSV</button></div>
+      </div>
+      <div class="card-body dir" id="tableBody"></div>
+    </section>
+  </div>
+</main>
+
+<footer><div class="wrap"><span id="footSource"></span><span id="footTime"></span></div></footer>
+
+<div id="tip" role="tooltip" aria-hidden="true"></div>
+
+<dialog id="detail" aria-labelledby="dlgTitle">
+  <div class="dlg-head" id="dlgHead">
+    <span id="dlgIssue"></span>
+    <h3 id="dlgTitle"></h3>
+    <div id="dlgType" class="dim"></div>
+    <button class="dlg-close" id="dlgClose" aria-label="ปิด"><i data-icon="x" data-size="18"></i></button>
+  </div>
+  <div class="dlg-body"><dl id="dlgList"></dl></div>
+  <div class="dlg-foot" id="dlgFoot"></div>
+</dialog>
+
+<script>
+(() => {
+'use strict';
+
+/* ======================================================================
+   การตั้งค่า
+   ====================================================================== */
+const CONFIG = {
+  // URL ของ Google Apps Script Web App (ลงท้ายด้วย /exec) — วางระหว่างเครื่องหมาย ' '
+  GAS_URL: '',
+  AUTO_REFRESH_MIN: 5,   // ดึงข้อมูลใหม่อัตโนมัติทุกกี่นาที (0 = ปิด)
+  PAGE_SIZE: 15
+};
+
+// ข้อมูลตัวอย่างจากไฟล์ Excel — ใช้แสดงผลเฉพาะตอนที่ยังไม่ได้ใส่ GAS_URL เท่านั้น
+const SNAPSHOT = /*__SNAPSHOT__*/{"ok":true,"source":{"spreadsheet":"ฐานข้อมูลภาคีดำเนินการ (รวม 4 ประเด็น) 15-10-26.xlsx","sheet":"รวมทุกประเด็น"},"fetchedAt":"2026-10-15T07:47:00Z","count":134,"columns":{"activity":"กิจกรรมหรือประเด็นงาน (ถ้ามี)","thaihealth":"รับทุน สสส. (ระบุสำนัก)","otherFund":"รับทุนอื่น (ถ้ามีให้ระบุ)","org":"ชื่อองค์กร/หน่วยงาน","province":"พื้นที่จังหวัด","coordinator":"ผู้ประสานงาน","phone":"เบอร์โทร","address":"ที่อยู่","no":"ลำดับ","issue":"ประเด็น"},"rows":[{"activity":"โครงการ: Happy Land","thaihealth":"สำนัก 6","otherFund":"","org":"โรงเรียนแก่นนครวิทยาลัย","province":"ขอนแก่น","coordinator":"นางวชิรญาณ์ ขาวจุ้ย","phone":"061-6355641","address":"4 หมู่ 2 โรงเรียนแก่นนครวิทยาลัย ต.ในเมือง อ.เมืองขอนแก่น จ.ขอนแก่น 40000","no":"1","issue":"ประเด็นสุขภาพจิต","row":2},{"activity":"โครงการ: พัฒนาระบบและกลไกฯ","thaihealth":"สภส.","otherFund":"","org":"มหาวิทยาลัยขอนแก่น","province":"ขอนแก่น","coordinator":"ผศ.ดร. วิบูลย์ วัฒนนามกุล","phone":"081-5927391","address":"มหาวิทยาลัยขอนแก่น","no":"2","issue":"ประเด็นสุขภาพจิต","row":3},{"activity":"โครงการ: ตำบลสร้างสุข, แก้จน","thaihealth":"สำนัก 3,4","otherFund":"","org":"ชุมชน","province":"สุรินทร์","coordinator":"นายวีระ นิจไตรรัตน์","phone":"081-8096566","address":"ท่าตูม จ.สุรินทร์","no":"3","issue":"ประเด็นสุขภาพจิต","row":4},{"activity":"โครงการ: เสริมสร้างสุขภาวะด้านทักษะชีวิต ฯ","thaihealth":"สำนัก 6","otherFund":"","org":"โรงเรียนสามัคคีราษฎ์บำรุง","province":"กาฬสินธุ์","coordinator":"นางสาวกาญจนา วรพันธ์","phone":"093-3232215","address":"โรงเรียนชุมชนสามัคคีราษฎร์บำรุง ตำบลลำหนองแสน อ.หนองกุงศรี จ.กาฬสินธุ์","no":"4","issue":"ประเด็นสุขภาพจิต","row":5},{"activity":"Node สสส ร้อยเอ็ด","thaihealth":"สำนัก 6","otherFund":"","org":"Node สสส ร้อยเอ็ด","province":"ร้อยเอ็ด","coordinator":"ว่าที่พันตรีดิษณ์กร สิงห์ยะเมือง","phone":"081-9653808","address":"หน่วยจัดการ สสส สำนัก 6 ตำบลในเมือง อำเภอเมือง จังหวัดร้อยเอ็ด","no":"5","issue":"ประเด็นสุขภาพจิต","row":6},{"activity":"โครงการ:การบำบัดผู้ใช้ยาเสพติดโดยชุมชนเป็นศูนย์กลาง","thaihealth":"สำนัก 6","otherFund":"","org":"โรงพยาบาลมหาสารคาม","province":"มหาสารคาม","coordinator":"นางนิตยา ฤทธิ์ศรี","phone":"081-8737630","address":"สมาคมฮักแพงเบิ่งแงงคนมหาสารคาม","no":"6","issue":"ประเด็นสุขภาพจิต","row":7},{"activity":"โครงการ: แผนร่วมทุน","thaihealth":"สำนัก 6","otherFund":"","org":"องค์กรปกครองส่วนท้องถิ่น","province":"ขอนแก่น","coordinator":"นางกานต์ญาณี เกียรติพนมแพ","phone":"084-4031564","address":"องค์การบริหารส่วนจังหวัด จังหวัดขอนแก่น","no":"7","issue":"ประเด็นสุขภาพจิต","row":8},{"activity":"โครงการ: ตำบลสร้างสุข, แก้จน","thaihealth":"สำนัก 3 และ 6","otherFund":"สปสช.","org":"องค์การบริหารส่วนตำบลโนนฆ้อง","province":"ขอนแก่น","coordinator":"นางอมรรัตน์ คำพิมพ์","phone":"081-7186376","address":"โรงพยาบาลส่งเสริมสุขภาพตำบลโนนฆ้อง","no":"8","issue":"ประเด็นสุขภาพจิต","row":9},{"activity":"โครงการ: สานสุข ไทอีสาน","thaihealth":"สำนัก สภส.","otherFund":"","org":"ศูนย์สุขภาพจิตที่ 7","province":"ขอนแก่น","coordinator":"นางยุวนา ไขว้พันธ์","phone":"086-7677357","address":"ศูนย์สุขภาพจิตที่ 7 จ.ขอนแก่น","no":"9","issue":"ประเด็นสุขภาพจิต","row":10},{"activity":"โครงการ: พัฒนาระบบและกลไกฯ","thaihealth":"สำนัก สภส.","otherFund":"","org":"โรงเรียนแก่นนครวิทยาลัย","province":"ขอนแก่น","coordinator":"นางสาวพรพิมล ตรีศาสตร์","phone":"082-9965416","address":"4 หมู่ 2 โรงเรียนแก่นนครวิทยาลัย ต.ในเมือง อ.เมืองขอนแก่น จ.ขอนแก่น 40000","no":"10","issue":"ประเด็นสุขภาพจิต","row":11},{"activity":"เครือข่ายศูนย์ตะวันฟ้าใสร่วมใจดูแลผู้ป่วยจิตเวชยาเสพติด","thaihealth":"สำนัก 6","otherFund":"ปปส.ภาค4/รพ.มหาสารคาม/เทศบาลแวงร่าง","org":"เครือข่ายศูนย์ตะวันฟ้าใสร่วมใจดูแลผู้ป่วยจิตเวชยาเสพติด","province":"มหาสารคาม","coordinator":"เรือตรีกฤษดา แวงแก้ว","phone":"082-85332811","address":"ต.แวงน่าง อ.เมือง จ.มหาสารคาม","no":"11","issue":"ประเด็นสุขภาพจิต","row":12},{"activity":"โครงการ: สามชุมชนประสานลูกหลานปลอดยาเสพติด","thaihealth":"สำนัก 6","otherFund":"","org":"ชุมชน","province":"มหาสารคาม","coordinator":"คุณศุภลักษณ์ จันหาญ","phone":"086-7133887","address":"ต.คันธารราษฏร์ อ.กันทรวิชัย จ.มหาสารคาม","no":"12","issue":"ประเด็นสุขภาพจิต","row":13},{"activity":"โครงการ: เสริมสร้างสุขภาวะด้านทักษะชีวิต","thaihealth":"สำนัก 6","otherFund":"","org":"โรงเรียนเบญจมิตรวิทยา","province":"ขอนแก่น","coordinator":"นายลิขิตพันธุ์ อมรสิรินันท์","phone":"088-2822755","address":"โรงเรียนเบญจมิตรวิทยา อ.หนองสองห้อง จ.ขอนแก่น","no":"13","issue":"ประเด็นสุขภาพจิต","row":14},{"activity":"โครงการ: การใช้ศิลปะบำบัดในเด็กพิเศษ/การดูแลเด็กพิเศษ","thaihealth":"สำนัก 6","otherFund":"","org":"มูลนิธิขอบฟ้ากว้างเพื่อบุคคลพิเศษ","province":"ขอนแก่น","coordinator":"คุณรัศมี สินพร","phone":"090-3072204","address":"มูลนิธิขอบฟ้า กว้างเพื่อบุคคพิเศษ จ.ขอนแก่น","no":"14","issue":"ประเด็นสุขภาพจิต","row":15},{"activity":"Node สสส. เด็กเยาวชน","thaihealth":"สำนัก 4,6,9","otherFund":"","org":"มูลนิธิพัฒนาเครือข่ายสุขภาพ สำนักงานภาคอีสาน","province":"ขอนแก่น","coordinator":"คุณปณัฎฐ์ศญา วงศ์ศิริปรีดา","phone":"096-6269147","address":"มูลนิธิพัฒนาเครือข่ายสุขภาพ สำนักงานภาคอีสาน อ.เมือง จ.ขอนแก่น","no":"15","issue":"ประเด็นสุขภาพจิต","row":16},{"activity":"โครงการ: 3 ชุมชนประสาน ลูกหลานปรัชยาเสพติด บ้านหนองข่า หนองคู ตำบลท่าตูม อำเภอเมืองมหาสารคาม จังหวัดมหาสารคาม","thaihealth":"สำนัก 6","otherFund":"สป./ปปส.","org":"งานบำบัดยาเสพติดมหาสารคาม","province":"มหาสารคาม","coordinator":"คุณธณัญภรณ์ วาโยบุตร","phone":"090-8856691","address":"โรงพยาบาลมหาสารคาม อำเภอเมืองมหาสารคาม จังหวัดมหาสารคาม","no":"16","issue":"ประเด็นสุขภาพจิต","row":17},{"activity":"งานสาธารณสุข รพ.สต.หัวทุ่ง อ.พล","thaihealth":"","otherFund":"","org":"รพ.สต.หัวทุ่ง","province":"ขอนแก่น","coordinator":"คุณจิรพงศ์ วสุวิภา","phone":"098-7498873","address":"รพ.สต.หัวทุ่ง อ.พล จ.ขอนแก่น","no":"17","issue":"ประเด็นสุขภาพจิต","row":18},{"activity":"งานพยาบาล รพสต. เมืองเพีย (สุขภาพจิตกับยาเสพติด)","thaihealth":"","otherFund":"งบประมาณกองทุนสุขภาพท้องถิ่น อบต. เมืองเพีย","org":"รพ.สต. เมืองเพีย","province":"ขอนแก่น","coordinator":"คุณวราจิตร ยอดสง่า","phone":"095-7736657","address":"รพ.สต. เมืองเพีย ต.เปือยใหญ่ อ.นนศิลา จ.ขอนแก่น","no":"18","issue":"ประเด็นสุขภาพจิต","row":19},{"activity":"งาน TO BE NUMBER ONE","thaihealth":"สำนัก 6","otherFund":"","org":"ชมรม TO BE NUMBER ONE จ.มหาสารคาม","province":"มหาสารคาม","coordinator":"คุณกฤดากานต์ มุกดา","phone":"066-1575023","address":"ชมรม TO BE NUMBER ONE จ.มหาสารคาม","no":"19","issue":"ประเด็นสุขภาพจิต","row":20},{"activity":"กลุ่มกิจการด้านบริการปฐมภูมิ โรงพยาบาลมหาสารคาม","thaihealth":"","otherFund":"","org":"ศูนย์แพทย์ ม.ร.ภ.หาสารคาม","province":"มหาสารคาม","coordinator":"ดร.วัชรินทร์ ทองสีเหลือง","phone":"094-2635432","address":"ศูนย์แพทย์ ม.ร.ภ.หาสารคาม ตำบลตลาด อำเภอเมืองมหาสารคาม จังหวัดมหาสารคาม","no":"20","issue":"ประเด็นสุขภาพจิต","row":21},{"activity":"งาน สสจ. มหาสารคาม ยาเสพติดกับสุขภาพจิต","thaihealth":"สำนัก 7","otherFund":"สปสช.","org":"สสจ.มหาสารคาม","province":"มหาสารคาม","coordinator":"คุณนวลปรางค์ ดวงสว่าง","phone":"083-6757213","address":"สสจ.มหาสารคาม","no":"21","issue":"ประเด็นสุขภาพจิต","row":22},{"activity":"งานส่งเสริมสุขภาพ รพ.สต. จ.ร้อยเอ็ด","thaihealth":"","otherFund":"มูลนิธิ เภสัชกรรมชุมชน","org":"รพ.สต.บ้านม่วงน้ำ","province":"ร้อยเอ็ด","coordinator":"คุณเชวง บุริวัฒน์","phone":"094-5427401","address":"โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านม่วงน้ำ ต.ปาฝา อ.จังหาร จ.ร้อยเอ็ด 45000","no":"22","issue":"ประเด็นสุขภาพจิต","row":23},{"activity":"งานจิตเวชในโรงพยาบาล","thaihealth":"","otherFund":"","org":"รพ.พล","province":"ขอนแก่น","coordinator":"คุณนันทนา มวลเมืองสอง","phone":"099-4419328","address":"รพ.พล จ.ขอนแก่น","no":"23","issue":"ประเด็นสุขภาพจิต","row":24},{"activity":"โครงการ: เสริมสร้างสุขภาวะทางใจในโรงเรียน","thaihealth":"สำนัก 6","otherFund":"","org":"โรงเรียนนาค้อวิทยาคม จ.กาฬสินธุ์","province":"กาฬสินธุ์","coordinator":"คุณกนกภรณ์ พุทธมา","phone":"064-6831569","address":"โรงเรียนนาค้อวิทยาคม ตำบลกุดโดน อำเภอห้วยเม็ก จังหวัดกาฬสินธุ์","no":"24","issue":"ประเด็นสุขภาพจิต","row":25},{"activity":"โครงการ: เสริมสร้างสุขภาวะทางใจในโรงเรียน","thaihealth":"สำนัก 6","otherFund":"","org":"โรงเรียนโนนสะอาด ราษฎร์อำนวย","province":"กาฬสินธุ์","coordinator":"คุณพิราพร วันมะรักษา","phone":"061-0737650","address":"โรงเรียนโนนสะอาดราษฎร์อำนวย ต.โนสะอาด อ.ห้วยเม็ก จ.กาฬสินธุ์","no":"25","issue":"ประเด็นสุขภาพจิต","row":26},{"activity":"โครงการ: เสริมสร้างสุขภาวะทางใจในโรงเรียน","thaihealth":"สำนัก 6","otherFund":"","org":"โรงเรียนท่าคันโทวิทยายน","province":"กาฬสินธุ์","coordinator":"คุณธานินทร์ วรรณสาร","phone":"085-6475852","address":"โรงเรียนท่าคันโทวิทยายน ต. ท่าคันโท อ. ท่าคันโท จ. กาฬสินธุ์","no":"26","issue":"ประเด็นสุขภาพจิต","row":27},{"activity":"สุขภาพจิตในชุมชน","thaihealth":"","otherFund":"","org":"ชุมชน","province":"มหาสารคาม","coordinator":"คุณอุดร เนื่องคำอินทรื","phone":"095-7277032","address":"105 หมูที่ 6 ตำบลเสือเฒ่า อำเภอเชียงยืน จังหวัดมหาสารคาม","no":"27","issue":"ประเด็นสุขภาพจิต","row":28},{"activity":"งานพยาบาลกับสุขภาพจิต","thaihealth":"สำนัก 6","otherFund":"สำนัก 6","org":"โรงพยาบาลเชียงยืน","province":"มหาสารคาม","coordinator":"คุณศิริรัตน์ โพธิ์หล้า","phone":"081-6017748","address":"ต.หนองกุง อ.ชื่นชม จ.มหาสารคาม","no":"28","issue":"ประเด็นสุขภาพจิต","row":29},{"activity":"งานพยาบาลกับสุขภาพจิต","thaihealth":"","otherFund":"องค์การบริหารส่วนตำบล 8 แห่งในอำเภอ เชียงยืน","org":"โรงพยาบาลเชียงยืน","province":"มหาสารคาม","coordinator":"คุณสุจิตรา ยะวร","phone":"098-8897442","address":"ต.ดอนเงิน อ.เชียงยืน จ.มหาสารคาม","no":"29","issue":"ประเด็นสุขภาพจิต","row":30},{"activity":"กลุ่มงานจิตเวช รพ.โกสุมพิสัย","thaihealth":"","otherFund":"","org":"กลุ่มงานจิตเวช รพ.โกสุมพิสัย","province":"มหาสารคาม","coordinator":"คุณลิหล่า ศรีพวงเพิด","phone":"098-1059113","address":"กลุ่มงานจิตเวช รพ.โกสุมพิสัย จใมหาสารคาม","no":"30","issue":"ประเด็นสุขภาพจิต","row":31},{"activity":"สร้างเสริมสุขภาวะชุมชน","thaihealth":"สำนัก 6","otherFund":"","org":"โหนด สสส. สน. 6 จ.ขอนแก่น","province":"ขอนแก่น","coordinator":"นายถนัด แสงทอง","phone":"0818726082","address":"186/5 ถ.หน้าเมือง ต.ในเมือง อ.เมือง จ.ขอนแก่น","no":"1","issue":"ประเด็นอาหารปลอดภัย","row":32},{"activity":"สร้างเสริมสุขภาวะชุมชน","thaihealth":"สำนัก 6","otherFund":"","org":"โหนด สสส. สน. 6 จ.มหาสารคาม","province":"มหาสารคาม","coordinator":"นายทานตะวัน สิงห์แก้ว","phone":"0829212835","address":"86 ม. 6 ต.นาข่า อ.วาปีปทุม จ.มหาสารคาม","no":"2","issue":"ประเด็นอาหารปลอดภัย","row":33},{"activity":"บริการวิชาการชุมชน","thaihealth":"","otherFund":"","org":"ม.ราชภัฎอุดรธานี","province":"อุดรธานี","coordinator":"อาจารย์ฐากรู สรวงศ์สิริ","phone":"0870276344","address":"ม.ราชภัฎอุดรธานี","no":"3","issue":"ประเด็นอาหารปลอดภัย","row":34},{"activity":"ตลาดอาหารปลอดภัย","thaihealth":"สำนัก 6","otherFund":"","org":"ตลาดเขียวขอนแก่น","province":"ขอนแก่น","coordinator":"น.ส. นพวรรณ งามขำ","phone":"0988248067","address":"147/1 ม.11 ต.บึงเนียม อ.เมือง จ.ขอนแก่น","no":"4","issue":"ประเด็นอาหารปลอดภัย","row":35},{"activity":"ตลาดอาหารปลอดภัย","thaihealth":"สำนัก 5","otherFund":"","org":"ตลาดเขียวมหาสารคาม","province":"มหาสารคาม","coordinator":"นายชัยสิทธิ์ แนวน้อย","phone":"0830244134","address":"ต.ท่าสองคอน อ.เมือง จ.มหาสารคาม","no":"5","issue":"ประเด็นอาหารปลอดภัย","row":36},{"activity":"ตลาดอาหารปลอดภัย","thaihealth":"สำนัก 5","otherFund":"","org":"ตลาดเขียวยโสธร","province":"ยโสธร","coordinator":"น.ส.สุพรรณี เวนุอาทร","phone":"0800609737","address":"111 ม. 1 ต.นาโส่ อ.กุดชุม จ.ยโสธร","no":"6","issue":"ประเด็นอาหารปลอดภัย","row":37},{"activity":"ตลาดอาหารปลอดภัย","thaihealth":"สำนัก 5","otherFund":"","org":"ตลาดเขียวสุรินทร์","province":"สุรินทร์","coordinator":"น.ส.ชนิดาภา ศรีสุข","phone":"0992198404","address":"49 ม.7 ต.แกใหญ่ อ.เมือง จ.สุรินทร์","no":"7","issue":"ประเด็นอาหารปลอดภัย","row":38},{"activity":"ตลาดอาหารปลอดภัย","thaihealth":"สำนัก 5","otherFund":"","org":"ตลาดเขียวราศีไศล","province":"ศรีสะเกษ","coordinator":"น.ส. วิภาดา อุนาฐา","phone":"0873590070","address":"100 ม. 1 ต.หนองแค อ.ราษีไศล จ.ศรีสะเกษ","no":"8","issue":"ประเด็นอาหารปลอดภัย","row":39},{"activity":"ส่งเสริมการทำเกษตรกรรมยั่งยืน","thaihealth":"","otherFund":"กองทุนสิ่งแวดล้อม","org":"เครือข่ายเกษตรกรรมทางเลือกอุดรธานี","province":"อุดรธานี","coordinator":"นายสยาม หยองเอ่น","phone":"0821060495","address":"317 ม. 3 ต.กุมภวาปี อ.กุมภวาปี จ.อุดรธานี","no":"9","issue":"ประเด็นอาหารปลอดภัย","row":40},{"activity":"ส่งเสริมการทำเกษตรกรรมยั่งยืน","thaihealth":"สำนัก 3","otherFund":"","org":"สมาคมสถาบันจัดการความรู้เกษตรกรรมยั่งยืน","province":"มหาสารคาม","coordinator":"น.ส.ฐิตารีย์ บุญนาน","phone":"0801496957","address":"ต.วังแสง อ.แกดำ จ.มหาสารคาม","no":"10","issue":"ประเด็นอาหารปลอดภัย","row":41},{"activity":"ส่งเสริมการทำเกษตรกรรมยั่งยืน","thaihealth":"สำนัก 5","otherFund":"","org":"เครือข่ายเกษตรกรรมทางเลือกยโสธร","province":"ยโสธร","coordinator":"นายบดินทร์ อยู่หว้า","phone":"0896269509","address":"18 ม.3 ต. ค้อวัง อ.ค้อวัง จ.ยโสธร เครือข่ายเกษตรกรรมทางเลือกยโสธร","no":"11","issue":"ประเด็นอาหารปลอดภัย","row":42},{"activity":"ส่งเสริมพัฒนาการเด็ก","thaihealth":"สำนัก 4","otherFund":"","org":"เครือข่ายเด็กและเยาวชนจังหวัดมหาสารคาม","province":"มหาสารคาม","coordinator":"นายเสาศิลป์ เพ็งสุวรรณ","phone":"0800548081","address":"เครือข่ายเด็กและเยาวชนจังหวัดมหาสารคาม","no":"12","issue":"ประเด็นอาหารปลอดภัย","row":43},{"activity":"สร้างเสริมสุขภาวะชุมชน","thaihealth":"สำนัก 6","otherFund":"","org":"โหนด สสส.สำนัก 6 จ.กาฬสินธุ์","province":"กาฬสินธุ์","coordinator":"นางปาริชาติ หาญไชยนะ","phone":"0945304506","address":"124/1 ม.15 ต.กมลาไสย อ.กมลาไสย จ.กาฬสินธุ์ 46130","no":"13","issue":"ประเด็นอาหารปลอดภัย","row":44},{"activity":"","thaihealth":"สำนัก 6","otherFund":"","org":"องค์การบริหารส่วนจังหวัดร้อยเอ็ด","province":"ร้อยเอ็ด","coordinator":"นางสาวอารียา ไกรอาษา","phone":"0656516942","address":"25 ม.7 ต.เชียงขวัญ อ.เชียงขวัญ จ.ร้อยเอ็ด 45000","no":"14","issue":"ประเด็นอาหารปลอดภัย","row":45},{"activity":"ส่งเสริมการทำเกษตรกรรมยั่งยืน","thaihealth":"","otherFund":"กรมทรัพยากรน้ำ","org":"เครือข่ายเกษตรกรรมทางเลือก จังหวัดกาฬสินธุ์","province":"กาฬสินธุ์","coordinator":"นางสาวคะนึงนิจ พลขยัน","phone":"094-2730444","address":"24 ม.5 ต.สายนาวัง อ.นาคู จ.กาฬสินธุ์ 46250","no":"15","issue":"ประเด็นอาหารปลอดภัย","row":46},{"activity":"ส่งเสริมดารผลิตอาหารปลอดภัยเขตเมือง","thaihealth":"สำนัก 5","otherFund":"","org":"เครือข่ายสวนผักคนเมืองมหาสารคาม","province":"มหาสารคาม","coordinator":"น.ส.มณีทิพย์ น้อยสุวรรณา","phone":"085 4518454","address":"68 หมู่ที่ 10 ตำบลเขวา อำเมือง จังหวัดมหาสารคาม 44000","no":"16","issue":"ประเด็นอาหารปลอดภัย","row":47},{"activity":"เผ้าระวังอาหารไม่ปลอดภัย","thaihealth":"สำนัก 5","otherFund":"","org":"เครือข่ายกลไกเผ้าระวังอาหารปลอดภัย","province":"มหาสารคาม","coordinator":"นางสาวมาลี สุปันตี","phone":"0898619627","address":"273 ม.7 ต.ท่าขอนยาง อ.กันทรวิชัย จ.มหาสารคาม","no":"17","issue":"ประเด็นอาหารปลอดภัย","row":48},{"activity":"ส่งเสริมการทำเกษตรกรรมยั่งยืน","thaihealth":"สำนัก 5","otherFund":"","org":"เครือข่ายเกษตรกรรมทางเลือกภาคอีสาน","province":"มหาสารคาม","coordinator":"นายเรืองเดช โพธิ์ศรี","phone":"088 066 2980","address":"327 หมู่ 7 บ้านดอนยม ตำบลท่าขอนยาง อำเภอกันทรวิชัยจังหวัดมหาสารคาม","no":"18","issue":"ประเด็นอาหารปลอดภัย","row":49},{"activity":"สร้างสุขภาวะชุมชนเขตเมือง","thaihealth":"สำนัก 3","otherFund":"","org":"เทศบาลเมืองมหาสารคาม","province":"มหาสารคาม","coordinator":"นางณัฐยา ยมโธสงค์","phone":"0815742619","address":"เทศบาลเมืองมหาสารคาม","no":"19","issue":"ประเด็นอาหารปลอดภัย","row":50},{"activity":"ส่งเสริมรายได้เกษตรกร","thaihealth":"","otherFund":"งบพัฒนาจังหวัด","org":"ตลาดเกษตรกรร้อยเอ็ด","province":"ร้อยเอ็ด","coordinator":"น.ส.กัลยา เสลามาตย์","phone":"080-7247808","address":"หน้าห้างบิ๊กซีร้อยเอ็ด อ.เมือง จ.ร้อยเอ็ด","no":"20","issue":"ประเด็นอาหารปลอดภัย","row":51},{"activity":"ฟื้นฟูอนุรักษ์อาหารท้องถิ่น","thaihealth":"","otherFund":"งบพัฒนาจังหวัด","org":"สำนักงานวัฒนธรรมจังหวัดสุรินทร","province":"สุรินทร์","coordinator":"นายธวัชชัย บุตรงาม","phone":"087-3761249","address":"796 หมู่ที่ 20 ถนนเลี่ยงเมือง ตำบลนอกเมือง อำเภอเมืองสุรินทร์ จังหวัดสุรินทร","no":"21","issue":"ประเด็นอาหารปลอดภัย","row":52},{"activity":"ส่งเสริมตลาดอาหารปลอดภัย","thaihealth":"","otherFund":"งบพัฒนาจังหวัด","org":"สำนักงานสาธารณสุขอำเภอเมืองยโสธร","province":"ยโสธร","coordinator":"นางศิริกัลยา อุปนิสากร","phone":"0812650694","address":"สำนักงานสาธารณสุขอำเภอเมืองยโสธร ถ.เทศบาล 1 อำเภอเมือง จังหวัดยโสธร","no":"22","issue":"ประเด็นอาหารปลอดภัย","row":53},{"activity":"ส่งเสริมผลิตอาหารปลอดภัย","thaihealth":"","otherFund":"งบพัฒนาจังหวัด","org":"สำนักงานเกษตรอำเภอราศีไศล จ.ศรีสะเกษ","province":"ศรีสะเกษ","coordinator":"นายสุรชาติ วรครุฑ","phone":"","address":"สำนักงานเกษตรอำเภอราศีไศล ตำบลเมืองคง อำเภอราศีไศล จังหวัดศรีสะเกษ","no":"23","issue":"ประเด็นอาหารปลอดภัย","row":54},{"activity":"พื้นที่กลางสร้างสุขภาพ","thaihealth":"","otherFund":"สป.สช.","org":"สมัชชาสุขภาพจังหวัดขอนแก่น","province":"ขอนแก่น","coordinator":"ผศ.ดร.วิบูลย์ วัฒนนามกุล","phone":"0945083696","address":"686/5 ซ.วุฒิธาราม ถ.หน้าเมือง ต.ในเมือง อ.เมือง จ.ขอนแก่น","no":"24","issue":"ประเด็นอาหารปลอดภัย","row":55},{"activity":"สร้างความร่วมมือกับภาคีเพื่อสร้างสุขภาวะชุมชน","thaihealth":"สำนัก 3","otherFund":"","org":"โครงการสานพลังเครือข่ายร่วมสร้างจังหวัดมหาสารคามสู่เมืองสุขภาวะ","province":"มหาสารคาม","coordinator":"นางสาวปิยะฉัตร หมู่บ้านม่วง","phone":"093-3279205","address":"273 ม.16 ต.พระลับ อ.เมือง จ.ขอนแก่น 40000","no":"25","issue":"ประเด็นอาหารปลอดภัย","row":56},{"activity":"สร้างเสริมสุขภาวะผู้สูงอายุในตำบล","thaihealth":"สำนัก 9","otherFund":"","org":"ศูนย์ประสานงานหลักประกันสุภาพประชาชนสภาฮักแพงจ.มหาสารคาม","province":"มหาสารคาม","coordinator":"นางสุมาลี บุตรคำโชติ","phone":"093-3279205","address":"25 ม.14 ตำบลเกิ้ง อำเภอเมือง จังหวัดมหาสารคาม","no":"26","issue":"ประเด็นอาหารปลอดภัย","row":57},{"activity":"หน่วยบริการผู้บริโภค","thaihealth":"","otherFund":"สภาผู้บริโภค","org":"สมาคมผู้บริโภคจังหวัดขอนแก่น","province":"ขอนแก่น","coordinator":"นายปฏิวัติ เฉลิมชาติ","phone":"835999489","address":"686/5 ซ.วุฒิธาราม ถ.หน้าเมือง ต.ในเมือง อ.เมือง จ.ขอนแก่น","no":"27","issue":"ประเด็นอาหารปลอดภัย","row":58},{"activity":"ส่งเสริมการทำตลาดอาหารปลอดภัยในเมือง","thaihealth":"สำนัก 3","otherFund":"","org":"เทศบาลนครขอนแก่น (ฝ่ายส่งเสริมอาหารปลอดภัย)","province":"ขอนแก่น","coordinator":"นายทัศนัย ประจวบมอญ","phone":"","address":"เทศบาลนครขอนแก่น","no":"28","issue":"ประเด็นอาหารปลอดภัย","row":59},{"activity":"สร้างพื้นที่อาหารปลอดภัยระดับอำเภอ","thaihealth":"สำนัก 5","otherFund":"","org":"สมาคมคนทาม","province":"ศรีสะเกษ","coordinator":"นางผา กองธรรม","phone":"651211596","address":"100 หมู่1 ตำบลหนองแค อำเภอราศีไศล จังหวัดศรีสะเกษ","no":"29","issue":"ประเด็นอาหารปลอดภัย","row":60},{"activity":"ผลิตอาหารปลอดภัย","thaihealth":"","otherFund":"","org":"กลุ่มอันซีนถิ่นราศี","province":"ศรีสะเกษ","coordinator":"นายสำราญ บุญธรรม","phone":"844297330","address":"ตำบลเมืองคง อำเภอราศีไศล จังหวัดศรีสะเกษ","no":"30","issue":"ประเด็นอาหารปลอดภัย","row":61},{"activity":"บริการวิชาการชุมชน","thaihealth":"","otherFund":"","org":"สถาบันวิจัยมหาวิทยาลัยราชภัฏศรีสะเกษ","province":"ศรีสะเกษ","coordinator":"รศ.ดร.ประจวบ จันทร์หมื่น","phone":"819921600","address":"สถาบันวิจัยและพัฒนาหาวิทยาลัยราชภัฏศรีสะเกษ มหาวิทยาลัยราชภัฏศรีสะเกษ 319 ถ.ไทยพันทา ต.โพธิ์ อ.เมือง จ.ศรีสะเกษ","no":"31","issue":"ประเด็นอาหารปลอดภัย","row":62},{"activity":"หน่วยส่งเสริมด้านสุขภาพและความปลอดภัยอาหาร","thaihealth":"","otherFund":"","org":"โรงพยาบาลส่งเสริมสุขภาพตำบลปลาขาว ตำบลหนองแค","province":"ศรีสะเกษ","coordinator":"นางยุพิน สันโสภาพ","phone":"885924057","address":"โรงพยาบาลส่งเสริมสุขภาพตำบลปลาขาว ตำบลหนองแค อำเภอราศีไศล จังหวัดศรีสะเกษ","no":"32","issue":"ประเด็นอาหารปลอดภัย","row":63},{"activity":"ผลิตอาหารปลอดภัย","thaihealth":"","otherFund":"","org":"สวนเอ็นอ้านาเทิง","province":"ศรีสะเกษ","coordinator":"นายเสถียร พันธุ์งาม","phone":"947425119","address":"36/1 หมู่1 ตำบลดู่ อำเภอราศีไศล จังหวัดศรีสะเกษ","no":"33","issue":"ประเด็นอาหารปลอดภัย","row":64},{"activity":"สร้างความเข้มแข็งกลุ่มองค์กรชุมชน","thaihealth":"","otherFund":"","org":"เครือข่ายพัฒนาชุมชนเมืองสุรินทร","province":"สุรินทร์","coordinator":"นางสาวสุดใจ มิ่งพฤกษ","phone":"089-7191993","address":"20/20 ถนนสุรินทร์ภักดี ตำบลในเมือง อำเภอเมืองสุรินทร์ จังหวัดสุรินทร์","no":"34","issue":"ประเด็นอาหารปลอดภัย","row":65},{"activity":"ส่งเสริมการผลิตอาหารปลอดภัย","thaihealth":"","otherFund":"","org":"บริษัทพลังประชารัฐรักสามัคคีจังหวัดสุรินทร์(วิสาหกิจเพื่อสังคม) จำกัด","province":"สุรินทร์","coordinator":"นางสาวบุญฑิยา พื้นนวล","phone":"064-599994","address":"410 หมู่ที่ 5 ศูนย์ราชการจังหวัดสุรินทร์ ชั้น 3 ซอยหอการค้า ตำบลนอกเมือง อำเภอเมืองสุรินทร์ จังหวัดสุรินทร์","no":"35","issue":"ประเด็นอาหารปลอดภัย","row":66},{"activity":"ส่งเสริมสมาชิกผลิตข้าวอินทรีย์","thaihealth":"สำนัก 5","otherFund":"","org":"กลุ่มอนุรักษ์ธรรมชาติบ้านโสกขุมปูน","province":"ยโสธร","coordinator":"นางสาวมาณิชา ทองน้อย","phone":"897182516","address":"52 ม. 2 ต.นาโส่ อ.กุดชุม จ.ยโสธร","no":"36","issue":"ประเด็นอาหารปลอดภัย","row":67},{"activity":"ส่งเสริมสมาชิกผลิตข้าวอินทรีย์","thaihealth":"สำนัก 5","otherFund":"","org":"วิสาหกิจชุมชนแปรรูปข้าวเกษตรอินทรียุ์บ้านโนนยาง","province":"ยโสธร","coordinator":"นายบุญส่ง มาสขาว","phone":"","address":"169 ม.3 อ.กุดชุม จ.ยโสธร","no":"37","issue":"ประเด็นอาหารปลอดภัย","row":68},{"activity":"ตลาดอาหารปลอดภัย","thaihealth":"สำนัก 6","otherFund":"","org":"เครือข่ายวิสาหกิจผู้ผลิตในระบบเกษตรกรรมยั่งยืนอำเภอกุดรัง จังหวัดมหาสารคาม (ตลาดเขียว รพ.กุดรัง)","province":"มหาสารคาม","coordinator":"นายทองพูล บุญแสน","phone":"862254737","address":"37 หมู่ที่ 10 ต.เลิงแฝก องกุดรัง จ.มหาสารคาม","no":"38","issue":"ประเด็นอาหารปลอดภัย","row":69},{"activity":"การพัฒนาระบบอาหารเพื่อสุขภาวะด้วยการส่งเสริมเกษตรอินทรีย์ตลอดห่วงโซ่ สร้างความมั่นคงทางอาหาร รับมือการเปลี่ยนแปลงสภาพภูมิอากาศและภัยพิบัติ","thaihealth":"สสส. สน. 5","otherFund":"","org":"มูลนิธิสื่อสร้างสุข","province":"อุบลราชธานี","coordinator":"นางสาวคนึงนุช วงศ์เย็น","phone":"087-3786955","address":"330/5 หมู่ 17 ตำบลไร่น้อย อำเภอเมือง จังหวัดอุบลราชธานี 34000","no":"39","issue":"ประเด็นอาหารปลอดภัย","row":70},{"activity":"ผู้ประสานงานโครงการปกป้องเด็กและเยาวชนจากภัยบุหรี่ไฟฟ้า ภาคอีสาน สำนัก 1","thaihealth":"สำนัก 1","otherFund":"กสศ.","org":"ศูนย์การเรียนรู้ชุมชนคนหนุ่มสาว/เครือข่ายสร้างเสริมสุขภาพเยาวชน (ขสย.)","province":"สกลนคร","coordinator":"นายธนภัทร แสงหิรัญ","phone":"096-3459391","address":"29 หมู่ 12 ต.โพนแพง อ.อากาศอำนวย จ.สกลนคร 47170","no":"1","issue":"ประเด็นบุหรี่ไฟฟ้า","row":71},{"activity":"แกนนำพื้นที่ ขับเคลื่อนโครงการปกป้องเด็กและเยาวชนจากภัยบุหรี่ไฟฟ้าภาคอีสาน สำนัก 1 พื้นที่จังหวัดอำนาจเจริญ","thaihealth":"สำนัก 1","otherFund":"ขสย.","org":"กลุ่มเยาวชนนาผือโคกกอก จ.อำนาจเจริญ / เครือข่ายสร้างเสริมสุขภาพเยาวชน (ขสย.)","province":"อำนาจเจริญ","coordinator":"นางสาวทิพวรรณ สราญรมย์","phone":"088-5830927","address":"149 หมู่ 3 ต.นาผือ อ.เมืองอำนาจเจริญ จ.อำนาจเจริญ 37000","no":"2","issue":"ประเด็นบุหรี่ไฟฟ้า","row":72},{"activity":"คณะทำงานประเด็นปัจจัยเสี่ยง (เครื่องดื่มแอลกอฮอล์ บุหรี่, บุหรี่ไฟฟ้า ฯลฯ) ระดับภูมิภาค สำนัก 1 / สำนัก 6 สสส.","thaihealth":"สำนัก 1,6","otherFund":"","org":"เครือข่ายองค์กร งดเหล้าอีสานล่าง (สคล)","province":"สุรินทร์","coordinator":"นายฉัตรชัย นิสัยกล้า","phone":"083-8215903","address":"สำนักงานเครือข่ายองค์กรงดเหล้า ภาคอีสานตอนล่าง อ.เมืองสุรินทร์ จ.สุรินทร์ 32000","no":"3","issue":"ประเด็นบุหรี่ไฟฟ้า","row":73},{"activity":"คณะทำงานประเด็นปัจจัยเสี่ยง (เครื่องดื่มแอลกอฮอล์ บุหรี่, บุหรี่ไฟฟ้า ฯลฯ) ระดับภูมิภาค สำนัก 1 / สำนัก 6 สสส.","thaihealth":"สำนัก 1,6","otherFund":"","org":"เครือข่ายองค์กรงดเหล้าอีสานล่าง (สคล)","province":"สุรินทร์","coordinator":"นายเกษมสันต์ รักษ์คิด","phone":"090-1821737","address":"สำนักงานเครือข่ายองค์กรงดเหล้า ภาคอีสานตอนล่าง อ.เมืองสุรินทร์ จ.สุรินทร์ 32000","no":"4","issue":"ประเด็นบุหรี่ไฟฟ้า","row":74},{"activity":"พี่เลี้ยงโครงการย่อย/ทีมหนุนเสริม กลุ่มเยาวชนประเด็นบุหรี่ไฟฟ้า, สุขภาวะทางเพศ โครงการฮักบ้านเกิดฯ สำนัก 6","thaihealth":"สำนัก 6","otherFund":"","org":"บ้านพักเด็กและครอบครัวจังหวัดสกลนคร","province":"สกลนคร","coordinator":"นายอดิศักดิ์ ศรีสวัสดิ์","phone":"063-9025645","address":"1914 ถนนศูนย์ราชการ ตำบลธาตุเชิงชุม อำเภอเมืองสกลนคร สกลนคร 47000","no":"5","issue":"ประเด็นบุหรี่ไฟฟ้า","row":75},{"activity":"กิจกรรมพัฒนาศักยภาพแกนนำสภาเด็กและเยาวชน","thaihealth":"สำนัก 1","otherFund":"กรมกิจการเด็กฯ พม","org":"บ้านพักเด็กและครอบครัวจังหวัดเลย","province":"เลย","coordinator":"นางสาวสุขชาดา ชมภูวรโชคเจริญ","phone":"094-2882656","address":"บ้านพักเด็กและครอบครัวจังหวัดเลย 252 หมู่ที่ 2 ตำบลกกดู่ อำเภอเมืองเลย จังหวัดเลย 42000","no":"6","issue":"ประเด็นบุหรี่ไฟฟ้า","row":76},{"activity":"แกนนำพื้นที่ ขับเคลื่อนโครงการปกป้องเด็กและเยาวชนจากภัยบุหรี่ไฟฟ้า ภาคอีสาน สำนัก 1 พื้นที่จังหวัดอำนาจเจริญ","thaihealth":"สำนัก 1","otherFund":"ขสย.","org":"กลุ่มเยาวชนนาผือโคกกอก / สภานักศึกษามหาวิทยาลัยอุบลราชธานี","province":"อุบลราชธานี","coordinator":"น.ส.ณัฐณิชา เพียรกล้า","phone":"090-9288027","address":"85 ถนนสถลมาร์ค ตำบลเมืองศรีไค อำเภอวารินชำราบ จังหวัดอุบลราชธานี 34190","no":"7","issue":"ประเด็นบุหรี่ไฟฟ้า","row":77},{"activity":"กิจกรรมสร้างสรรค์","thaihealth":"สำนัก 1,6","otherFund":"","org":"นักกิจกรรมเยาวชน จ.สุรินทร์","province":"สุรินทร์","coordinator":"นายศุภวัฒน์ วิชัยดิษ","phone":"","address":"","no":"8","issue":"ประเด็นบุหรี่ไฟฟ้า","row":78},{"activity":"แกนนำพื้นที่ ขับเคลื่อนโครงการปกป้องเด็กและเยาวชนจากภัยบุหรี่ไฟฟ้า ภาคอีสาน สำนัก 1 พื้นที่จังหวัดสกลนคร","thaihealth":"สำนัก 1","otherFund":"กสศ.","org":"เครือข่ายสร้างเสริมสุขภาพเยาวชน (ขสย.)","province":"สกลนคร","coordinator":"นางสาวจิราวรรณ จันทร์สุข","phone":"063-4470873","address":"239 หมู่ 4 ต.โพนแพง อ.อากาศอำนวย จ.สกลนคร 47170","no":"9","issue":"ประเด็นบุหรี่ไฟฟ้า","row":79},{"activity":"อบรมนักเรียนในพื้นบริการตำบลวังยาง โครงการป้องกันยาเสพติด รพ.สต. วังยาง","thaihealth":"","otherFund":"","org":"รพ.สต.วังยาง สังกัด อบจ.สกลนคร","province":"สกลนคร","coordinator":"นางสาวสุดารัตน์ จำปารา","phone":"094-2982655","address":"28/1 ถนน 22 ตำบลวังยาง อำเภอพรรณานิคม จังหวัดสกลนคร 47130","no":"10","issue":"ประเด็นบุหรี่ไฟฟ้า","row":80},{"activity":"หัวหน้าคณะทำงานประเด็นปัจจัยเสี่ยง (เครื่องดื่มแอลกอฮอล์ บุหรี่, บุหรี่ไฟฟ้า ฯลฯ) ระดับภูมิภาค สำนัก 1 / สำนัก 6 สสส. หัวหน้าหน่วยจัดการเด็กและเยาวชน สำนัก 6","thaihealth":"สำนัก 1,6","otherFund":"","org":"เครือข่ายองค์กรงดเหล้าอีสานล่าง (สคล)","province":"สุรินทร์","coordinator":"นายมงคล ปัญญาประชุม","phone":"081-7909259","address":"สำนักงานเครือข่ายองค์กรงดเหล้า ภาคอีสานตอนล่าง อ.เมืองสุรินทร์ จ.สุรินทร์ 32000","no":"11","issue":"ประเด็นบุหรี่ไฟฟ้า","row":81},{"activity":"กิจกรรมพื้นที่สร้างสรรค์ลดปัจจัยเสี่ยง","thaihealth":"สำนัก 1","otherFund":"","org":"เครือข่ายคนรุ่นใหม่ธงธานี จ.ร้อยเอ็ด","province":"ร้อยอ็ด","coordinator":"นางสาวบุญรัตน์ อาษาศึก","phone":"084-1995626","address":"ต.ธงธานี อ.ธวัชบุรี จ.ร้อยเอ็ด 45170","no":"12","issue":"ประเด็นบุหรี่ไฟฟ้า","row":82},{"activity":"โครงการปกป้องเด็กและเยาวชนจากภัยบุหรี่ไฟฟ้า ที่ปรึกษาแกนนำเยาวชน","thaihealth":"","otherFund":"กระทรวงศึกษาธิการ","org":"โรงเรียนชุมชนบ้านกลางนาโน อ.อากาศอำนวย จ.สกลนคร","province":"สกลนคร","coordinator":"นางสาวกาญจนา ก้งอินตา","phone":"098-6431092","address":"โรงเรียนชุมชนบ้านกลางนาโน ต.โพนแพง อ.อากาศอำนวย จ.สกลนคร 47170","no":"13","issue":"ประเด็นบุหรี่ไฟฟ้า","row":83},{"activity":"แกนนำพื้นที่ ขับเคลื่อนโครงการปกป้องเด็กและเยาวชนจากภัยบุหรี่ไฟฟ้า ภาคอีสาน สำนัก 1 พื้นที่จังหวัดอำนาจเจริญ","thaihealth":"","otherFund":"ขสย.","org":"โรงเรียนชุมชนนาผือโคกกอก จ.อำนาจเจริญ","province":"อำนาจเจริญ","coordinator":"นางสาวศิริญากร วารินทร์","phone":"096-8491795","address":"12 หมู่ 12 ต.นาผือ อ.เมืองอำนาจเจริญ จ.อำนาจเจริญ 37000","no":"14","issue":"ประเด็นบุหรี่ไฟฟ้า","row":84},{"activity":"เฝ้าระวัง พัฒนาแกนนำนักเรียน","thaihealth":"สำนัก 6","otherFund":"","org":"โรงเรียนโรงเรียนทับทิมสยาม 04 ต.เทพรักษา อ.สังขะ จ.สุรินทร์","province":"สุรินทร์","coordinator":"ว่าที่ ร.ต.เกียรติพงศ์ เรืองเกษม","phone":"061-9619211","address":"หมู่ที่ 6 บ้านลันแต้ ตำบลเทพรักษา อำเภอสังขะ จังหวัดสุรินทร์ 32150","no":"15","issue":"ประเด็นบุหรี่ไฟฟ้า","row":85},{"activity":"กลุ่มยุทธศาสตร์ แผนงาน และเครือข่าย","thaihealth":"","otherFund":"สสส","org":"สำนักงานป้องกันควบคุมโรคที่ 9 นครราชสีมา","province":"นครราชสีมา","coordinator":"นายอนุเทพ แซ่เล้า","phone":"081-3604040","address":"174 ถ. ราชสีมา - โชคชัย ตำบล หนองบัวศาลา อำเภอเมืองนครราชสีมา นครราชสีมา 30000","no":"16","issue":"ประเด็นบุหรี่ไฟฟ้า","row":86},{"activity":"งานกฏหมาย","thaihealth":"","otherFund":"สสส","org":"สำนักงานป้องกันควบคุมโรคที่ 10 อุบลราชธานี","province":"อุบลราชธานี","coordinator":"ดร.ธงศักดิ์ ดอกจันทร์","phone":"082-5911371","address":"220 ถนนพรหมเทพ ตำบลในเมือง อำเภอเมือง จังหวัดอุบลราชธานี 34000","no":"17","issue":"ประเด็นบุหรี่ไฟฟ้า","row":87},{"activity":"งานพัฒนาเครือข่าย, งานเยาวชน","thaihealth":"สำนัก 1","otherFund":"","org":"เครือข่ายองค์กรงดเหล้า สคล. ภาคอีสานตอนบน จ.ขอนแก่น","province":"ขอนแก่น","coordinator":"นายอัคราวุธ ขวัญทอง","phone":"088-5165751","address":"ถนน ราษฎ์คนึง ตำบลในเมือง อำเภอเมืองขอนแก่น 40000","no":"18","issue":"ประเด็นบุหรี่ไฟฟ้า","row":88},{"activity":"พัฒนาแกนนำเยาวชนลดปัจจัยเสี่ยงในชุมชน","thaihealth":"สำนัก 1","otherFund":"ขสย","org":"ประชาคมงดเหล้าจังหวัดนครพนม จ.นครพนม","province":"นครพนม","coordinator":"นายชลกานต์ วงศ์เข็มมา","phone":"084-3893435","address":"101 หมู่ 4 ตำบลดอนเตย อำเภอนาทม จังหวัดนครพนม 48140","no":"19","issue":"ประเด็นบุหรี่ไฟฟ้า","row":89},{"activity":"พัฒนาแกนนำเยาวชน","thaihealth":"","otherFund":"","org":"วิทยาลัยศาสนศาสตร์ มหาวิทยาลัยมหากุฎราชวิทยาลัย จ.กาฬสินธุ์","province":"กาฬสินธ์","coordinator":"นายพีรพงษ์ เคนทรภักดิ์","phone":"083-3615269","address":"84/1 วัดประชานิยม ถนนถีนานนท์ ตำบลกาฬสินธุ์ อำเภอเมืองกาฬสินธุ์ จังหวัดกาฬสินธุ์ 46000","no":"20","issue":"ประเด็นบุหรี่ไฟฟ้า","row":90},{"activity":"โครงการป้องกันบุหรี่ไฟฟ้า กขป.8","thaihealth":"","otherFund":"สปสช.","org":"มหาวิทยาลัยราชภัฏอุดรธานี","province":"อุดรธานี","coordinator":"ผศ.มัทนียา กายแก้ว","phone":"087-4544374","address":"คณะมนุษยศาสตร์และสังคมศาสตร์ มหาวิทยาลัยราชภัฏอุดรธานี 64 ถนนทหาร ต.หมากแข้ง อ.เมือง จ.อุดรธานี 41000","no":"21","issue":"ประเด็นบุหรี่ไฟฟ้า","row":91},{"activity":"โครงการป้องกันบุหรี่ไฟฟ้า กขป.8","thaihealth":"","otherFund":"สปสช.","org":"คณะกรรมการเขตสุขภาพเพื่อประชาชน เขตพื้นที่ 8","province":"อุดรธานี","coordinator":"ผศ.ดร.อัจฉรา จินวงษ์","phone":"092-5452635","address":"เลขที่ 4 ถนนอธิบดี ตำบลหมากแข้ง อำเภอเมือง จังหวัดอุดรธานี 41000","no":"22","issue":"ประเด็นบุหรี่ไฟฟ้า","row":92},{"activity":"พัฒนานักศึกษา","thaihealth":"สำนัก 1","otherFund":"","org":"มหาวิทยาลัยราชภัฏบุรีรัมย์","province":"บุรัรัมย์","coordinator":"ผศ.ดร.ฟ้าประธาน เติมขุนทด","phone":"0988875754","address":"กองพัฒนานักศึกษา มหาวิทยาลัยราชภัฏบุรีรัมย์ 439 ถนน จิระ ตำบลในเมือง. อำเภอเมือง จังหวัดบุรีรัมย์ 31000","no":"23","issue":"ประเด็นบุหรี่ไฟฟ้า","row":93},{"activity":"พัฒนานักศึกษา","thaihealth":"สำนัก 1","otherFund":"","org":"มหาวิทยาลัยราชภัฏสกลนคร","province":"สกลนคร","coordinator":"นายนิรุตย์ วิชาชาติ","phone":"098-8260226","address":"กองพัฒนานักศึกษา ชั้น 1 อาคาร 20 มหาวิทยาลัยราชภัฏสกลนคร 680 ถนนนิตโย ต.ธาตุเชิงชุม อ.เมือง จ.สกลนคร 47000","no":"24","issue":"ประเด็นบุหรี่ไฟฟ้า","row":94},{"activity":"พัฒนาเยาวชน","thaihealth":"","otherFund":"ขสย","org":"ผู้นำชุมชนบ้านผับแล้ง","province":"อุบลราชธานี","coordinator":"นายกุลกวิล แก้วคำชาติ","phone":"089-7218465","address":"ที่ทำการผู้ใหญ่บ้าน บ้านผับแล้ง ต.สำโรง อ.สำโรง จ.อุบลราชธานี 34360","no":"25","issue":"ประเด็นบุหรี่ไฟฟ้า","row":95},{"activity":"พัฒนาเด็กและเยาวชน , นิทานเยาวชน, พื้นที่สร้างสรรค์","thaihealth":"","otherFund":"ขสย.","org":"ห้องสมุดแมวหางกิ้นส์","province":"อุบลราชธานี","coordinator":"นายคะทาวุธ แวงชัยภูมิ","phone":"081-9123126","address":"บ้านหนองยาง ตำบลท่าเมือง อำเภอดอนมดแดง อุบลราชธานี 34000","no":"26","issue":"ประเด็นบุหรี่ไฟฟ้า","row":96},{"activity":"พัฒนาเยาวชน, เล่นเปลี่ยนโลก","thaihealth":"สำนัก 1","otherFund":"","org":"กลุ่มไม้ขีดไฟ","province":"นครราชสีมา","coordinator":"นายศรัทธา ปลื้มสูงเนิน","phone":"081-7321412","address":"เลขที่ 4 ตำบลขนงพระ อำเภอปากช่อง จังหวัดนครราชสีมา 30130","no":"27","issue":"ประเด็นบุหรี่ไฟฟ้า","row":97},{"activity":"พัฒนาเครือข่ายแกนนำเยาวชน","thaihealth":"สำนัก 1","otherFund":"","org":"แกนนำนักเรียนโรงเรียนชุมชนบ้านกลางนาโน","province":"สกลนคร","coordinator":"นายธันวา ฟอยไฮหงษ์","phone":"088-7029218","address":"บ้านกลาง หมู่ 4 ต.โพนแพง อ.อากาศอำนวย จ.สกลนคร 47170","no":"28","issue":"ประเด็นบุหรี่ไฟฟ้า","row":98},{"activity":"พัฒนาเด็กและเยาวชน , นิทานเยาวชน, พื้นที่สร้างสรรค์","thaihealth":"","otherFund":"ขสย. กสศ.","org":"กลุ่มเด็กและเยาวชนหนองเม็ก องค์กรสาธารณประโยชน์ (ห้องสมุดบ้านหนังสือ","province":"สกลนคร","coordinator":"นางสาวสุธิวา บุญวัง","phone":"086-8768318","address":"บ้านหนองเม๊ก ต.ช่องเม๊ก อ.สิรินธร จ.อุบลราชธานี 34350","no":"29","issue":"ประเด็นบุหรี่ไฟฟ้า","row":99},{"activity":"โครงการป้องกันภัยบุหรี่ไฟฟ้า","thaihealth":"สำนัก 1, สำนัก 6","otherFund":"","org":"กลุ่มเยาวชน Freedom","province":"สกลนคร","coordinator":"นายพลวัฒน์ ไชยดา","phone":"096-8862401","address":"ต.แวง อ.สว่างแดนดิน จ.สกลนคร 47240","no":"30","issue":"ประเด็นบุหรี่ไฟฟ้า","row":100},{"activity":"พัฒนาเยาวชน, เยาวชนลดปัจจัยเสี่ยง","thaihealth":"สำนัก 1","otherFund":"ขสย","org":"คณะโฮมสุข (เจิดเจ้ยบันเทิงศิลป์ )","province":"ชัยภูมิ","coordinator":"นายสิงหา ทองชัยภูมิ","phone":"085-9209143","address":"บ้านบัวพักเกวียน 107 ม.12 ต.กวางโจน อ.ภูเขียว จ.ชัยภูมิ 36110","no":"31","issue":"ประเด็นบุหรี่ไฟฟ้า","row":101},{"activity":"พัฒนาเยาวชน","thaihealth":"","otherFund":"ขสย","org":"กลุ่มเยาวชนบ้านบุ่ง","province":"มุกดาหาร","coordinator":"ว่าที่ร้อยตรีหญิง ภรทิพย์ เสียงเย็น","phone":"094-8399607","address":"กลุ่มเยาวชนบ้านบุ่ง ต.ภูวง อ.หนองสูง จ.มุกดาหาร 49160","no":"32","issue":"ประเด็นบุหรี่ไฟฟ้า","row":102},{"activity":"การพัฒนาศักยภาพสภาโกและเยาวชน","thaihealth":"","otherFund":"กรมกิจการเด็กฯ พม","org":"สภาเด็กและเยาวชนจังหวัดเลย","province":"เลย","coordinator":"นายอาร์วิน ซอยสุเรนทร์","phone":"062-1767612","address":"บ้านพักเด็กและครอบครัวจังหวัดเลย 252 หมู่ที่ 2 ตำบลกกดู่ อำเภอเมืองเลย จังหวัดเลย 42000","no":"33","issue":"ประเด็นบุหรี่ไฟฟ้า","row":103},{"activity":"","thaihealth":"6","otherFund":"","org":"รพ.โพนสวรรค์","province":"นครพนม","coordinator":"ดร.พัขราพร ควรรณสุ","phone":"0885733196","address":"รพ.โพนสวรรค์","no":"1","issue":"ประเด็นสังคมสูงวัย","row":104},{"activity":"","thaihealth":"อุดรธานี","otherFund":"กองทุน พมจ.","org":"กองทุนสวัสดิการผู้สูงอายุ ทต.โพธิ์ศรีสำราญ","province":"อุดรธานี","coordinator":"นส. พิณพิชญา ดวงจันทร์คำ","phone":"","address":"ทต.โพธิ์ศรีสำราญ อ.โนนสะอาด จ.อุดรธานี","no":"2","issue":"ประเด็นสังคมสูงวัย","row":105},{"activity":"","thaihealth":"6","otherFund":"","org":"รพ.โพนสวรรค์","province":"นครพนม","coordinator":"นส.นันทยา นนเลาพล","phone":"0872240728","address":"รพ.โพนสวรรค์","no":"3","issue":"ประเด็นสังคมสูงวัย","row":106},{"activity":"","thaihealth":"6","otherFund":"","org":"รพ.โพนสวรรค์","province":"นครพนม","coordinator":"นางนันทนา ควรรณสุ","phone":"0847869084","address":"รพ.โพนสวรรค์","no":"4","issue":"ประเด็นสังคมสูงวัย","row":107},{"activity":"","thaihealth":"6","otherFund":"","org":"หัวหน้ากลุ่มงาน PCU บ้านแท่น","province":"ชัยภูมิ","coordinator":"ดร.สมคิด เทียมแก้ว","phone":"0817181979","address":"รพ.บ้านแท่น ชัยภูมิ","no":"5","issue":"ประเด็นสังคมสูงวัย","row":108},{"activity":"","thaihealth":"อุดรธานี","otherFund":"","org":"วิทยาลัยพยาบาล จ.อุดรธานี","province":"อุดรธานี","coordinator":"ดร.วนิดา ศรีพรหมษา","phone":"086-2201080","address":"วิทยาลัยพยาบาล จ.อุดรธานี","no":"6","issue":"ประเด็นสังคมสูงวัย","row":109},{"activity":"","thaihealth":"6","otherFund":"","org":"ผอ.กองสวัสดิการ เทศบาลพระซอง จ.นครพนม","province":"นครพนม","coordinator":"นายอิทธิพล บุตรบุญ","phone":"064-9789398","address":"เทศบาลพระซอง จ.นครพนม","no":"7","issue":"ประเด็นสังคมสูงวัย","row":110},{"activity":"","thaihealth":"6","otherFund":"","org":"รองนายกเทศมนตรี เทศบาลพระซอง จ.นครพนม","province":"นครพนม","coordinator":"นายพีระพร วรวัฒนธรรม","phone":"085-7499599","address":"เทศบาลพระซอง จ.นครพนม","no":"8","issue":"ประเด็นสังคมสูงวัย","row":111},{"activity":"","thaihealth":"6","otherFund":"","org":"ผอ.รพ.สต.ดงอินำ ต.พระซอง จ.นครพนม","province":"นครพนม","coordinator":"น.ส.ทวีลักษณ์ วงค์ตาเทพ","phone":"086-4897219","address":"รพ.สต.ดงอินำ","no":"9","issue":"ประเด็นสังคมสูงวัย","row":112},{"activity":"","thaihealth":"6","otherFund":"","org":"ครู รร.พระซองสามัคคีวิทยา","province":"นครพนม","coordinator":"นางนงค์ลักษณ์ พ่อบุตรดี","phone":"084-8145162","address":"ครู รร.พระซองสามัคคีวิทยา","no":"10","issue":"ประเด็นสังคมสูงวัย","row":113},{"activity":"","thaihealth":"","otherFund":"","org":"นักพัฒนาสังคม สนง.พมจ.สกลนคร","province":"สกลนคร","coordinator":"นายนิติกร อินทร์อ่อน","phone":"0818736183","address":"นักพัฒนาสังคม สนง.พมจ.สกลนคร","no":"11","issue":"ประเด็นสังคมสูงวัย","row":114},{"activity":"","thaihealth":"","otherFund":"","org":"เจ้าพนักงานสาธารณสุขชำนาญงาน","province":"ชัยภูมิ","coordinator":"นายนุกุล ศุภมาตร","phone":"090-2591423","address":"รพ.สต.คลองไผ่งาม 146 หมู่ 4 ต.บ้านเขว้า อ.บ้านเขว้า จ. ชัยภูมิ","no":"12","issue":"ประเด็นสังคมสูงวัย","row":115},{"activity":"","thaihealth":"","otherFund":"","org":"นักวิชาการสาธารณสุขชำนาญการ","province":"ชัยภูมิ","coordinator":"นางบุศรา ศรีชัย","phone":"0881462444","address":"สสอ.คอนสาร อำเภอคอนสาร จังหวัดชัยภูมิ","no":"13","issue":"ประเด็นสังคมสูงวัย","row":116},{"activity":"","thaihealth":"","otherFund":"","org":"พยาบาลวิชาชีพชำนาญการ","province":"ชัยภูมิ","coordinator":"นางนิภา บุญชู","phone":"","address":"รพ.คอนสาร","no":"14","issue":"ประเด็นสังคมสูงวัย","row":117},{"activity":"","thaihealth":"6","otherFund":"","org":"ศูนย์คุ้มครองสิทธิบัตรทอง อำเภอบ้านดุง","province":"อุดรธานี","coordinator":"นายสุรสิทธิ์ ฆารเจริญ","phone":"0810494998","address":"ศูนย์คุ้มครองสิทธิบัตรทองอำเภอบ้านดุง จ.อุดรธานี","no":"15","issue":"ประเด็นสังคมสูงวัย","row":118},{"activity":"","thaihealth":"","otherFund":"","org":"ประธานสาขาสมาคมผู้สูงอายุแห่งประเทศไทยจังหวัดอุดรธานี","province":"อุดรธานี","coordinator":"นายมุณี นันทะจักร์","phone":"0801619968","address":"สมาคมผู้สูงอายุจังหวัดอุดรธานี","no":"16","issue":"ประเด็นสังคมสูงวัย","row":119},{"activity":"","thaihealth":"","otherFund":"","org":"นักวิชาการสาธารณสุขชำนาญงาน","province":"ชัยภูมิ","coordinator":"นางอนิสรา เชื้อสระพัง","phone":"0995251756","address":"รพ.บ้านแท่น ชัยภูมิ","no":"17","issue":"ประเด็นสังคมสูงวัย","row":120},{"activity":"","thaihealth":"","otherFund":"","org":"นายก อบต.ด่านช้าง อ.นากลาง จ.หนองบัวลำภู","province":"หนองบัวลำภู","coordinator":"นางนันทนา นาคำ","phone":"081-9921189","address":"อบต.ด่านช้าง อ.นากลาง จ.หนองบัวลำภู","no":"18","issue":"ประเด็นสังคมสูงวัย","row":121},{"activity":"","thaihealth":"","otherFund":"","org":"รองประธานผู้บริบาลแห่งประเทศไทย","province":"สกลนคร","coordinator":"นายก้องเพ็ชร คำศรี","phone":"0934641088","address":"สกลนคร","no":"19","issue":"ประเด็นสังคมสูงวัย","row":122},{"activity":"","thaihealth":"","otherFund":"","org":"ผอ.กองสวัสดิการสังคม โพนนาแก้ว","province":"สกลนคร","coordinator":"นายวสันต์ จันทร์สุวรรณ","phone":"0895698737","address":"สกลนคร","no":"20","issue":"ประเด็นสังคมสูงวัย","row":123},{"activity":"","thaihealth":"","otherFund":"","org":"ประธานชมรมผู้สูงอายุชุมชนท่าเริอ ม.1 ต.ท่าแร่","province":"สกลนคร","coordinator":"นายอดุยล์ คระกูลมา","phone":"0818736182","address":"ชมรมผู้สูงอายุชุมชนท่าเริอ ม.1 ต.ท่าแร่","no":"21","issue":"ประเด็นสังคมสูงวัย","row":124},{"activity":"","thaihealth":"","otherFund":"","org":"กขป8","province":"สกลนคร","coordinator":"นายศุภศิษฐ์ ราชกรม","phone":"06-19896253","address":"สกลนคร","no":"22","issue":"ประเด็นสังคมสูงวัย","row":125},{"activity":"","thaihealth":"","otherFund":"","org":".ม.พยาบาลบรมราชชนนี ขอนแก่น","province":"ขอนแก่น","coordinator":"ผศ.ดร.กันนิษฐา มาแห็ม","phone":"061-4535554","address":"ม.พยาบาลบรมราชชนนี ขอนแก่น","no":"23","issue":"ประเด็นสังคมสูงวัย","row":126},{"activity":"","thaihealth":"","otherFund":"","org":"ประธานสภาเด็กและเยาวชนิอิสานและขอนแก่น","province":"ขอนแก่น","coordinator":"นายธนกฤต ใจแน่น","phone":"","address":"ขอนแก่น","no":"24","issue":"ประเด็นสังคมสูงวัย","row":127},{"activity":"","thaihealth":"","otherFund":"","org":"ข้าราชการบำนาญ","province":"ขอนแก่น","coordinator":"นางสุจิตรา อุทธา","phone":"0942899497","address":"ขอนแก่น","no":"25","issue":"ประเด็นสังคมสูงวัย","row":128},{"activity":"","thaihealth":"","otherFund":"","org":"ข้าราชการบำนาญ","province":"ขอนแก่น","coordinator":"นางทองใส เอ็นหยอง","phone":"0897119038","address":"ขอนแก่น","no":"26","issue":"ประเด็นสังคมสูงวัย","row":129},{"activity":"","thaihealth":"","otherFund":"สช.","org":"สื่อ UDONNEXTSTEP","province":"อุดรธานี","coordinator":"นายสรรเพชญ สงคราม","phone":"082-6445629","address":"126/1 ซ.ศรีสงคราม ถ.รอบเมือง ต.บ้านเลื่อม อ.เมืองอุดรธานี จ.อุดรธานี","no":"27","issue":"ประเด็นสังคมสูงวัย","row":130},{"activity":"","thaihealth":"","otherFund":"","org":"รองประธาน กขป เขต 7","province":"ขอนแก่น","coordinator":"นายวิรัช มั่นในบุญธรรม","phone":"","address":"ขอนแก่น","no":"28","issue":"ประเด็นสังคมสูงวัย","row":131},{"activity":"","thaihealth":"","otherFund":"","org":"นางจิระนันท์ พากเพียร","province":"ขอนแก่น","coordinator":"นางจิระนันท์ พากเพียร","phone":"0818719909","address":"ที่ปรึกษาสมาคมผู้บริโภค ขอนแก่น","no":"29","issue":"ประเด็นสังคมสูงวัย","row":132},{"activity":"","thaihealth":"7","otherFund":"สช.","org":"เลขา กขป 8","province":"อุดรธานี","coordinator":"นายสิทธพล เหล่าสิงลา","phone":"","address":"198 หมู่ 7 ต.หายโศก อ.บ้านผือ จ.อุดรธานี","no":"30","issue":"ประเด็นสังคมสูงวัย","row":133},{"activity":"","thaihealth":"อุดรธานี","otherFund":"","org":"คณะพยาบาลศาตร์มหาวิทยาลัยราขภัฏอุดรธานี","province":"อุดรธานี","coordinator":"ผศ.ดร.ชลการ ทรงศรี","phone":"0804796145","address":"อาจารย์สาขาการพยาบาลผู้ใหญ่ผู้สูงอายุ คณะพยาบาลศาตร์มหาวิทยาลัยราขภัฏอุดรธานี 0804796145","no":"31","issue":"ประเด็นสังคมสูงวัย","row":134},{"activity":"","thaihealth":"","otherFund":"","org":"ผอ.กองการศึกษาฯ องค์การบริหารส่วนตำบลเขือน้ำ","province":"อุดรธานี","coordinator":"จ่าสิบตำรวจเมธี ไตรผักแว่น","phone":"0862412339","address":"องค์การบริหารส่วนตำบลเขือน้ำ ต.เขือน้ำ อ.บ้านผือ จ.อุดรธานี","no":"32","issue":"ประเด็นสังคมสูงวัย","row":135}]};
+
+/* ======================================================================
+   ค่าคงที่
+   ====================================================================== */
+const ISSUE_META = {
+  'สุขภาพจิต':    { slot: 1, icon: 'heart' },
+  'อาหารปลอดภัย': { slot: 2, icon: 'leaf' },
+  'บุหรี่ไฟฟ้า':    { slot: 3, icon: 'nosmoke' },
+  'สังคมสูงวัย':    { slot: 4, icon: 'users' }
+};
+const EXTRA_SLOTS = [5, 6, 7, 8];
+
+// ตำแหน่งจังหวัดบนแผนที่แบบช่อง (คอลัมน์, แถว, อักษรย่อ)
+const ISAN_TILES = {
+  'หนองคาย':[3,1,'นค'], 'บึงกาฬ':[4,1,'บก'],
+  'เลย':[1,2,'ลย'], 'หนองบัวลำภู':[2,2,'นภ'], 'อุดรธานี':[3,2,'อด'], 'สกลนคร':[4,2,'สน'], 'นครพนม':[5,2,'นพ'],
+  'ชัยภูมิ':[1,3,'ชย'], 'ขอนแก่น':[2,3,'ขก'], 'กาฬสินธุ์':[3,3,'กส'], 'มุกดาหาร':[4,3,'มห'],
+  'มหาสารคาม':[2,4,'มค'], 'ร้อยเอ็ด':[3,4,'รอ'], 'ยโสธร':[4,4,'ยส'], 'อำนาจเจริญ':[5,4,'อจ'],
+  'นครราชสีมา':[1,5,'นม'], 'บุรีรัมย์':[2,5,'บร'], 'สุรินทร์':[3,5,'สร'], 'ศรีสะเกษ':[4,5,'ศก'], 'อุบลราชธานี':[5,5,'อบ']
+};
+const PROVINCES = Object.keys(ISAN_TILES);
+
+const ORG_TYPES = [
+  ['หน่วยจัดการ/โหนด สสส.',     /node|โหนด/i],
+  ['โรงเรียน',                  /โรงเรียน|(^|\s)รร\.|แกนนำนักเรียน/],
+  ['ตลาด/ผู้ผลิต/วิสาหกิจ',       /ตลาด|วิสาหกิจ|บริษัท|^สวน/],
+  ['กลุ่มเยาวชน/ชุมชน',          /เยาวชน|^ชุมชน|ผู้นำชุมชน|(^|\s)กลุ่ม(?!งาน)|ชมรม|ห้องสมุด|คณะโฮม|นักกิจกรรม/],
+  ['เครือข่าย/มูลนิธิ/สมาคม',      /เครือข่าย|มูลนิธิ|สมาคม|สมัชชา|ประชาคม|ศูนย์ประสานงาน|สานพลัง|ผู้บริบาล/],
+  ['มหาวิทยาลัย/วิทยาลัย',        /มหาวิทยาลัย|ราชภั[ฏฎ]|ม\.ร\.ภ|วิทยาลัย|ม\.พยาบาล|สถาบันวิจัย|คณะพยาบาล/],
+  ['หน่วยบริการสาธารณสุข',       /โรงพยาบาล|รพ\.|รพ\s|สสจ|สสอ|สาธารณสุข|pcu|ศูนย์สุขภาพจิต|พยาบาล|ควบคุมโรค|บำบัด|จิตเวช/i],
+  ['องค์กรปกครองส่วนท้องถิ่น',     /องค์การบริหารส่วน|อบต|อบจ|เทศบาล|ทต\.|ปกครองส่วนท้องถิ่น|กองสวัสดิการ|กองการศึกษา/],
+  ['หน่วยงานภาครัฐ',             /สำนักงาน|สนง\.|บ้านพักเด็ก|พมจ|ศูนย์คุ้มครอง|กขป|เขตสุขภาพ|นักพัฒนาสังคม|เจ้าพนักงาน|วัฒนธรรม/],
+  ['บุคคล/ผู้ทรงคุณวุฒิ',          /^(นาย|นาง|น\.ส\.|ดร\.|ผศ\.|รศ\.)|บำนาญ/]
+];
+const ORG_OTHER = 'อื่น ๆ';
+
+const FUNDER_RULES = [
+  ['สปสช.',                     /สปสช\.?|สป\.\s*สช\.?/g],
+  ['สช.',                       /(^|[^ป])สช\.?/g],
+  ['ปปส.',                      /ปปส\.?(ภาค\s*\d+)?/g],
+  ['ขสย.',                      /ขสย\.?/g],
+  ['กสศ.',                      /กสศ\.?/g],
+  ['สสส.',                      /สสส\.?|สำนัก\s*\d+/g],
+  ['พม./พมจ.',                  /กรมกิจการเด็ก\S*|กองทุน\s*พมจ\.?|(^|\s)พมจ?\.?(?=\s|$)/g],
+  ['งบพัฒนาจังหวัด',             /งบพัฒนาจังหวัด/g],
+  ['อปท./กองทุนสุขภาพท้องถิ่น',   /(งบประมาณ)?กองทุนสุขภาพท้องถิ่น|องค์การบริหารส่วน\S*|อบต\.?|อบจ\.?|เทศบาล\S*/g],
+  ['โรงพยาบาล',                 /รพ\.\S*|โรงพยาบาล\S*/g]
+];
+
+const COMPLETE_FIELDS = [
+  ['จังหวัด',             r => r.province !== 'ไม่ระบุ'],
+  ['ผู้ประสานงาน',        r => !!r.coordinator],
+  ['เบอร์โทร',            r => r.phoneDigits.length >= 9],
+  ['ที่อยู่',              r => !!r.address],
+  ['กิจกรรม/ประเด็นงาน',  r => !!r.activity]
+];
+
+const ICONS = {
+  network:'<circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="18.5" r="2.6"/><circle cx="19" cy="18.5" r="2.6"/><path d="M12 7.6V12m0 0-5 4.6M12 12l5 4.6"/>',
+  refresh:'<path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/>',
+  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  alert:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5v.01"/>',
+  loader:'<path d="M21 12a9 9 0 1 1-6.2-8.56"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  map:'<path d="M14.1 6.3 9.9 4.2a2 2 0 0 0-1.8 0L3.6 6.4A1 1 0 0 0 3 7.3v12.1a1 1 0 0 0 1.4.9l3.7-1.8a2 2 0 0 1 1.8 0l4.2 2.1a2 2 0 0 0 1.8 0l4.5-2.2a1 1 0 0 0 .6-.9V5.5a1 1 0 0 0-1.4-.9l-3.7 1.8a2 2 0 0 1-1.8 0z"/><path d="M15 6.5v15M9 3.5v15"/>',
+  pin:'<path d="M20 10c0 5-5.5 10.2-7.4 11.8a1 1 0 0 1-1.2 0C9.5 20.2 4 15 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+  wallet:'<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  layers:'<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
+  building:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  'check-list':'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
+  table:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M12 3v18"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+  coins:'<circle cx="8" cy="8" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18"/><path d="M7 6h1v4"/><path d="m16.7 13.9.7.7-2.8 2.8"/>',
+  heart:'<path d="M19.5 12.6 12 20l-7.5-7.4A5 5 0 1 1 12 6a5 5 0 1 1 7.5 6.6z"/><path d="M6.5 12h3l1.5-2.5 2 5 1.5-2.5h3"/>',
+  leaf:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.4 5.1-6C9.5 14.5 12 13 13 12"/>',
+  nosmoke:'<path d="M2 2l20 20"/><path d="M12 12H2v4h14"/><path d="M22 12v4"/><path d="M18 12h-.5"/><path d="M7 12v4"/><path d="M18 8c0-2.5-2-2.5-2-5"/><path d="M22 8c0-2.5-2-2.5-2-5"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>',
+  dot:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+  external:'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'
+};
+
+/* ======================================================================
+   State
+   ====================================================================== */
+const state = {
+  rows: null, issues: [], issueIndex: new Map(), meta: {}, mode: '',
+  f: { issues: new Set(), province: '', bureau: '', funder: '', orgType: '', q: '' },
+  sort: { key: 'issue', dir: 1 }, page: 1, pageSize: CONFIG.PAGE_SIZE,
+  views: { map: 'chart', province: 'chart', bureau: 'chart', funder: 'chart', org: 'chart', activity: 'chart' }
+};
+
+/* ======================================================================
+   Helpers
+   ====================================================================== */
+const $ = (s, el = document) => el.querySelector(s);
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style') el.style.cssText = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) {
+    if (k == null || k === false) continue;
+    el.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  }
+  return el;
+}
+function icon(name, size = 18) {
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('width', size); s.setAttribute('height', size);
+  s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2');
+  s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); s.setAttribute('aria-hidden', 'true');
+  s.innerHTML = ICONS[name] || ICONS.dot;
+  return s;
+}
+function hydrateIcons(root = document) {
+  root.querySelectorAll('i[data-icon]').forEach(el => el.replaceWith(icon(el.dataset.icon, +el.dataset.size || 18)));
+}
+const nf = new Intl.NumberFormat('th-TH');
+const fmt = n => nf.format(n);
+const pct = (a, b) => !b ? '0%' : (a > 0 && a / b < 0.005 ? '<1%' : Math.round(a / b * 100) + '%');
+const clean = v => String(v == null ? '' : v).replace(/[​-‍﻿]/g, '').replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+
+function lev(a, b) {
+  const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[m][n];
+}
+
+/* ======================================================================
+   Normalize (ทำความสะอาดข้อมูลจากชีต)
+   ====================================================================== */
+function normProvince(raw) {
+  const s = clean(raw).replace(/^(จ\.|จังหวัด)\s*/, '');
+  if (!s) return 'ไม่ระบุ';
+  if (ISAN_TILES[s]) return s;
+  if (s.length >= 3) {
+    let best = null, bd = 99;
+    for (const p of PROVINCES) { const d = lev(s, p); if (d < bd) { bd = d; best = p; } }
+    if (bd <= 2) return best;   // แก้คำสะกดผิดเล็กน้อย เช่น ร้อยอ็ด → ร้อยเอ็ด
+  }
+  return s;
+}
+function normPhone(raw) {
+  const s = clean(raw);
+  let d = s.replace(/\D/g, '');
+  if (d.length === 9 && /^[689]/.test(d)) d = '0' + d;   // เลข 0 นำหน้าหายเพราะชีตเก็บเป็นตัวเลข
+  const mobile = d.length === 10 && /^0[689]/.test(d), land = d.length === 9 && /^0[2-7]/.test(d);
+  let text = s;
+  if (mobile) text = `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  else if (land) text = `${d.slice(0, 3)}-${d.slice(3)}`;
+  return { text, digits: d, valid: mobile || land, href: mobile || land ? 'tel:' + d : '' };
+}
+function parseBureau(raw) {
+  const s = clean(raw);
+  const tags = [];
+  if (/สภส/.test(s)) tags.push('สภส.');
+  const nums = (s.replace(/สภส\.?/g, '').match(/\d+/g) || []).map(Number).filter(n => n >= 1 && n <= 20);
+  [...new Set(nums)].sort((a, b) => a - b).forEach(n => tags.push('สำนัก ' + n));
+  return tags;
+}
+function parseFunders(raw) {
+  const s = clean(raw);
+  if (!s) return [];
+  const out = new Set();
+  s.split(/\s*[\/,]\s*/).forEach(part => {
+    let rest = part, hit = false;
+    for (const [label, re] of FUNDER_RULES) {
+      re.lastIndex = 0;
+      if (re.test(rest)) { out.add(label); hit = true; re.lastIndex = 0; rest = rest.replace(re, ' '); }
+      re.lastIndex = 0;
+    }
+    rest = clean(rest);
+    if (!hit && rest) out.add(rest);
+  });
+  return [...out];
+}
+function classifyOrg(org) {
+  for (const [label, re] of ORG_TYPES) if (re.test(org)) return label;
+  return ORG_OTHER;
+}
+function normalizeRow(r, i) {
+  const issueRaw = clean(r.issue);
+  if (/^รวม/.test(issueRaw)) return null;
+  const org = clean(r.org), coordinator = clean(r.coordinator), phoneRaw = clean(r.phone);
+  if (!org && !coordinator && !phoneRaw) return null;
+  const ph = normPhone(phoneRaw);
+  const activityRaw = clean(r.activity);
+  const activity = activityRaw.replace(/^โครงการ\s*:?\s*/, '').replace(/\s*ฯ\s*$/, '').trim();
+  const row = {
+    _i: i,
+    issue: issueRaw.replace(/^ประเด็น\s*/, '').trim() || 'ไม่ระบุประเด็น',
+    issueRaw,
+    no: clean(r.no),
+    org: org || '(ไม่ระบุชื่อองค์กร)',
+    orgType: classifyOrg(org),
+    province: normProvince(r.province),
+    provinceRaw: clean(r.province),
+    bureaus: parseBureau(r.thaihealth),
+    bureauRaw: clean(r.thaihealth),
+    funders: parseFunders(r.otherFund),
+    otherRaw: clean(r.otherFund),
+    activity, activityRaw,
+    coordinator,
+    phoneText: ph.text, phoneDigits: ph.digits, phoneHref: ph.href,
+    address: clean(r.address),
+    sheetRow: r.row || ''
+  };
+  row.search = [row.issue, row.org, row.orgType, row.province, row.bureauRaw, row.otherRaw, row.activityRaw,
+    row.coordinator, row.phoneText, row.phoneDigits, row.address].join(' ').toLowerCase();
+  return row;
+}
+function ingest(payload) {
+  const rows = (payload.rows || []).map(normalizeRow).filter(Boolean);
+  const names = [];
+  rows.forEach(r => { if (!names.includes(r.issue)) names.push(r.issue); });
+  const ordered = [...Object.keys(ISSUE_META).filter(n => names.includes(n)), ...names.filter(n => !ISSUE_META[n])];
+  let extra = 0;
+  state.issues = ordered.map(name => {
+    const meta = ISSUE_META[name];
+    const slot = meta ? meta.slot : (extra < EXTRA_SLOTS.length ? EXTRA_SLOTS[extra++] : 0);
+    return { key: name, name, slot, color: `var(--i${slot})`, icon: meta ? meta.icon : 'dot' };
+  });
+  state.issueIndex = new Map(state.issues.map((x, i) => [x.key, i]));
+  state.rows = rows;
+  state.meta = { source: payload.source || {}, fetchedAt: payload.fetchedAt || null };
+  for (const k of [...state.f.issues]) if (!state.issueIndex.has(k)) state.f.issues.delete(k);
+}
+
+/* ======================================================================
+   Filtering & grouping
+   ====================================================================== */
+function passes(r, except) {
+  const f = state.f;
+  if (except !== 'issues' && f.issues.size && !f.issues.has(r.issue)) return false;
+  if (except !== 'province' && f.province && r.province !== f.province) return false;
+  if (except !== 'bureau' && f.bureau && !(f.bureau === 'ไม่ระบุ' ? r.bureaus.length === 0 : r.bureaus.includes(f.bureau))) return false;
+  if (except !== 'funder' && f.funder && !r.funders.includes(f.funder)) return false;
+  if (except !== 'orgType' && f.orgType && r.orgType !== f.orgType) return false;
+  if (f.q && !f.q.split(/\s+/).every(t => r.search.includes(t))) return false;
+  return true;
+}
+const rowsExcept = except => state.rows.filter(r => passes(r, except));
+function group(rows, keysOf) {
+  const m = new Map();
+  for (const r of rows) for (const k of keysOf(r)) {
+    if (!m.has(k)) m.set(k, { key: k, label: k, total: 0, by: {} });
+    const g = m.get(k); g.total++; g.by[r.issue] = (g.by[r.issue] || 0) + 1;
+  }
+  return [...m.values()];
+}
+const byTotal = (a, b) => b.total - a.total || a.label.localeCompare(b.label, 'th');
+function visibleIssues() {
+  return state.f.issues.size ? state.issues.filter(i => state.f.issues.has(i.key)) : state.issues;
+}
+function count(arr, keyFn) {
+  const m = new Map();
+  arr.forEach(x => { const k = keyFn(x); if (k) m.set(k, (m.get(k) || 0) + 1); });
+  return [...m.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+/* ======================================================================
+   Tooltip
+   ====================================================================== */
+const tip = $('#tip');
+function placeTip(x, y) {
+  const r = tip.getBoundingClientRect();
+  let L = x + 14, T = y + 14;
+  if (L + r.width > innerWidth - 8) L = x - r.width - 14;
+  if (T + r.height > innerHeight - 8) T = y - r.height - 14;
+  tip.style.transform = '';
+  tip.style.left = Math.max(8, L) + 'px';
+  tip.style.top = Math.max(8, T) + 'px';
+}
+function showTip(content, x, y) {
+  tip.textContent = ''; tip.append(content); tip.classList.add('show'); placeTip(x, y);
+}
+function hideTip() { tip.classList.remove('show'); }
+function bindTip(el, build) {
+  el.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;
+    const seg = e.target.closest('[data-issue]');
+    showTip(build(seg ? seg.dataset.issue : null), e.clientX, e.clientY);
+  });
+  el.addEventListener('pointerleave', hideTip);
+  el.addEventListener('focus', () => { const b = el.getBoundingClientRect(); showTip(build(null), b.left + Math.min(b.width / 2, 160), b.bottom); });
+  el.addEventListener('blur', hideTip);
+}
+function tipGroup(title, g, hl, sub) {
+  const box = h('div', null, h('div', { class: 'tt' }, title));
+  if (sub) box.append(h('div', { class: 'tsub' }, sub));
+  for (const iss of visibleIssues()) {
+    const v = g.by[iss.key] || 0;
+    box.append(h('div', { class: 'tr' + (v ? '' : ' zero') + (hl === iss.key ? ' hl' : '') },
+      h('span', { class: 'k', style: `background:${iss.color}` }), h('b', null, fmt(v)), h('span', null, iss.name)));
+  }
+  box.append(h('div', { class: 'tot' }, h('span', null, 'รวม'), h('b', null, fmt(g.total) + ' ภาคี')));
+  return box;
+}
+
+/* ======================================================================
+   Chart components
+   ====================================================================== */
+function legendFill() {
+  const vis = visibleIssues();
+  document.querySelectorAll('[data-legend]').forEach(el => {
+    el.textContent = '';
+    if (vis.length < 2) return;   // ซีรีส์เดียว: ชื่อประเด็นอยู่ในตัวกรองแล้ว ไม่ต้องมีคำอธิบายสี
+    for (const iss of vis) el.append(h('span', null, h('i', { style: `--c:${iss.color}` }), iss.name));
+  });
+}
+function viewToggles() {
+  document.querySelectorAll('[data-view-for]').forEach(el => {
+    const key = el.dataset.viewFor;
+    el.textContent = '';
+    for (const [v, label] of [['chart', 'กราฟ'], ['table', 'ตาราง']]) {
+      el.append(h('button', {
+        type: 'button', 'aria-pressed': String(state.views[key] === v),
+        onclick: () => { state.views[key] = v; render(); }
+      }, label));
+    }
+  });
+}
+function emptyNote(msg = 'ไม่พบข้อมูลตามตัวกรองที่เลือก') { return h('div', { class: 'empty' }, msg); }
+
+function renderBars(el, groups, opt = {}) {
+  el.textContent = '';
+  if (!groups.length) { el.append(emptyNote(opt.emptyMsg)); return; }
+  const max = Math.max(...groups.map(g => g.total));
+  const wrap = h('div', { class: 'bars' + (opt.selected ? ' has-sel' : ''), role: 'list' });
+  if (opt.labelWidth) wrap.style.setProperty('--lw', opt.labelWidth);
+  for (const g of groups) {
+    const sel = opt.selected === g.key;
+    const row = h('div', {
+      class: 'brow' + (sel ? ' sel' : ''), role: 'listitem', tabindex: opt.onPick ? '0' : null,
+      'aria-label': `${g.label} ${g.total} ภาคี` + (opt.onPick ? (sel ? ' (เลือกอยู่ กดเพื่อยกเลิก)' : ' (กดเพื่อกรอง)') : '')
+    });
+    const stack = h('div', { class: 'bstack' });
+    stack.style.width = `calc((100% - 44px) * ${(g.total / max).toFixed(4)})`;
+    for (const iss of state.issues) {
+      const v = g.by[iss.key];
+      if (!v) continue;
+      stack.append(h('i', { 'data-issue': iss.key, style: `flex:${v} 1 0;background:${iss.color}` }));
+    }
+    row.append(h('div', { class: 'blabel', title: g.label }, g.label), h('div', { class: 'btrack' }, stack, h('span', { class: 'bval' }, fmt(g.total))));
+    bindTip(row, hl => tipGroup(g.label, g, hl, opt.sub ? opt.sub(g) : null));
+    if (opt.onPick) {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => opt.onPick(g.key));
+      row.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); opt.onPick(g.key); } });
+    } else row.style.cursor = 'default';
+    wrap.append(row);
+  }
+  el.append(wrap);
+}
+
+function renderGroupTable(el, groups, dimLabel, opt = {}) {
+  el.textContent = '';
+  if (!groups.length) { el.append(emptyNote(opt.emptyMsg)); return; }
+  const iss = visibleIssues();
+  const thead = h('thead', null, h('tr', null, h('th', null, dimLabel), iss.map(i => h('th', { class: 'n' }, i.name)), h('th', { class: 'n' }, 'รวม')));
+  const tbody = h('tbody');
+  for (const g of groups) {
+    tbody.append(h('tr', null, h('td', null, g.label), iss.map(i => h('td', { class: 'n' }, g.by[i.key] ? fmt(g.by[i.key]) : h('span', { class: 'dim' }, '–'))), h('td', { class: 'n' }, h('b', null, fmt(g.total)))));
+  }
+  el.append(h('div', { class: 'tbl-wrap mini-tbl' }, h('table', null, thead, tbody)));
+}
+
+function renderMap(el, groups) {
+  el.textContent = '';
+  const sel = state.f.province;
+  const byProv = new Map(groups.map(g => [g.key, g]));
+  const inMap = groups.filter(g => ISAN_TILES[g.key]);
+  const max = Math.max(1, ...inMap.map(g => g.total));
+  const bin = v => Math.min(5, Math.max(1, Math.ceil(v / max * 5)));
+  const grid = h('div', { class: 'tmap' + (sel ? ' has-sel' : ''), role: 'list', 'aria-label': 'แผนที่จำนวนภาคีรายจังหวัด' });
+  for (const [name, [c, r, ab]] of Object.entries(ISAN_TILES)) {
+    const g = byProv.get(name), v = g ? g.total : 0;
+    const tile = h('div', { class: 'tile' + (v ? ' on' : '') + (sel === name ? ' sel' : ''), role: 'listitem', style: `grid-column:${c};grid-row:${r}` },
+      h('span', { class: 'nm' }, h('span', { class: 'full' }, name), h('span', { class: 'ab' }, ab)),
+      h('span', { class: 'ct' }, v ? fmt(v) : '–'));
+    if (v) {
+      const b = bin(v);
+      tile.style.background = `var(--seq${b})`;
+      tile.style.color = `var(--seq-ink${b})`;
+      tile.tabIndex = 0;
+      tile.setAttribute('aria-label', `${name} ${v} ภาคี`);
+      bindTip(tile, () => tipGroup('จ.' + name, g, null));
+      const pick = () => setFilter('province', name);
+      tile.addEventListener('click', pick);
+      tile.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+    } else {
+      tile.setAttribute('aria-label', `${name} ไม่มีภาคี`);
+      tile.title = `${name}: ยังไม่มีภาคีในฐานข้อมูล`;
+    }
+    grid.append(tile);
+  }
+  const scale = h('div', { class: 'scale', 'aria-label': 'คำอธิบายสี' }, h('span', null, 'น้อย'));
+  for (let i = 1; i <= 5; i++) {
+    const lo = Math.floor((i - 1) * max / 5) + 1, hi = Math.floor(i * max / 5);
+    if (lo > hi) continue;
+    scale.append(h('span', { class: 'st' }, h('i', { style: `background:var(--seq${i})` }), lo === hi ? fmt(lo) : `${fmt(lo)}–${fmt(hi)}`));
+  }
+  scale.append(h('span', null, 'มาก'));
+  const wrap = h('div', { class: 'map-wrap' }, grid, scale);
+  const missing = PROVINCES.filter(p => !byProv.has(p));
+  wrap.append(h('div', { class: 'map-sum' },
+    h('div', null, h('b', null, `${fmt(inMap.length)} / ${fmt(PROVINCES.length)}`), h('span', null, 'จังหวัดภาคอีสานที่มีภาคี')),
+    h('div', null, h('b', null, missing.length ? missing.join(', ') : 'ครบทุกจังหวัด'), h('span', null, 'จังหวัดที่ยังไม่มีภาคีตามตัวกรองนี้'))));
+  const outside = groups.filter(g => !ISAN_TILES[g.key]);
+  if (outside.length) {
+    wrap.append(h('div', { class: 'note' }, 'นอกแผนที่: ', outside.map((g, i) => [i ? ', ' : '', `${g.label} (${fmt(g.total)})`])));
+  }
+  el.append(wrap);
+}
+
+function renderComplete(el, rows) {
+  el.textContent = '';
+  if (!rows.length) { el.append(emptyNote()); return; }
+  const lines = visibleIssues().map(iss => ({ iss, rows: rows.filter(r => r.issue === iss.key) })).filter(l => l.rows.length);
+  if (lines.length > 1) lines.push({ iss: null, rows });
+  const grid = h('div', { class: 'heat', style: `grid-template-columns:minmax(150px,1.3fr) repeat(${COMPLETE_FIELDS.length},minmax(84px,1fr))` });
+  grid.append(h('div'));
+  COMPLETE_FIELDS.forEach(([label]) => grid.append(h('div', { class: 'hh' }, label)));
+  for (const line of lines) {
+    grid.append(line.iss
+      ? h('div', { class: 'rl' }, h('i', { style: `--c:${line.iss.color}` }), line.iss.name, h('span', { class: 'dim' }, ` (${fmt(line.rows.length)})`))
+      : h('div', { class: 'rl total' }, 'ทุกประเด็นที่เลือก', h('span', { class: 'dim' }, ` (${fmt(line.rows.length)})`)));
+    for (const [label, test] of COMPLETE_FIELDS) {
+      const n = line.rows.filter(test).length, p = n / line.rows.length;
+      const cell = h('div', { class: 'hc' + (n ? '' : ' zero'), tabindex: '0', 'aria-label': `${line.iss ? line.iss.name : 'ทุกประเด็น'} ${label} ${pct(n, line.rows.length)}` }, pct(n, line.rows.length));
+      if (n) {
+        const b = Math.min(5, Math.max(1, Math.ceil(Math.round(p * 100) / 20)));
+        cell.style.background = `var(--seq${b})`; cell.style.color = `var(--seq-ink${b})`;
+      }
+      bindTip(cell, () => h('div', null,
+        h('div', { class: 'tt' }, `${label} · ${line.iss ? line.iss.name : 'ทุกประเด็นที่เลือก'}`),
+        h('div', { class: 'tot', style: 'border:0;margin:0;padding:0' }, h('span', null, 'กรอกแล้ว'), h('b', null, `${fmt(n)} / ${fmt(line.rows.length)} ราย (${pct(n, line.rows.length)})`))));
+      grid.append(cell);
+    }
+  }
+  const scale = h('div', { class: 'scale', style: 'justify-content:flex-start' }, h('span', null, 'ร้อยละที่กรอกข้อมูล:'),
+    h('span', { class: 'st' }, h('i', { style: 'background:var(--surface-2);border:1px dashed var(--grid)' }), '0%'),
+    ...[1, 2, 3, 4, 5].map(i => h('span', { class: 'st' }, h('i', { style: `background:var(--seq${i})` }), `${(i - 1) * 20 + 1}–${i * 20}%`)));
+  el.append(h('div', { class: 'heat-wrap' }, grid), scale);
+}
+
+/* ======================================================================
+   Sections
+   ====================================================================== */
+function renderChips() {
+  const el = $('#issueChips');
+  el.textContent = '';
+  const base = rowsExcept('issues');
+  const none = state.f.issues.size === 0;
+  el.append(h('button', { class: 'chip all', type: 'button', 'aria-pressed': String(none), onclick: () => { state.f.issues.clear(); state.page = 1; render(); } },
+    'ทุกประเด็น', h('span', { class: 'n' }, fmt(base.length))));
+  for (const iss of state.issues) {
+    const n = base.filter(r => r.issue === iss.key).length;
+    el.append(h('button', { class: 'chip', type: 'button', style: `--c:${iss.color}`, 'aria-pressed': String(state.f.issues.has(iss.key)), onclick: () => toggleIssue(iss.key) },
+      h('span', { class: 'sw' }), iss.name, h('span', { class: 'n' }, fmt(n))));
+  }
+}
+function fillSelect(sel, items, current, allLabel) {
+  sel.textContent = '';
+  sel.append(h('option', { value: '' }, allLabel));
+  for (const it of items) sel.append(h('option', { value: it[0] }, `${it[0]} (${fmt(it[1])})`));
+  if (current && !items.some(it => it[0] === current)) sel.append(h('option', { value: current }, `${current} (0)`));
+  sel.value = current || '';
+  sel.classList.toggle('on', !!current);
+}
+function renderSelects() {
+  fillSelect($('#fProvince'), count(rowsExcept('province'), r => r.province), state.f.province, 'ทุกจังหวัด');
+  const bRows = rowsExcept('bureau');
+  const bItems = group(bRows, r => r.bureaus.length ? r.bureaus : ['ไม่ระบุ']).sort(byTotal).map(g => [g.key, g.total]);
+  fillSelect($('#fBureau'), bItems, state.f.bureau, 'ทุกสำนัก / ไม่ระบุ');
+  const fItems = group(rowsExcept('funder'), r => r.funders).sort(byTotal).map(g => [g.key, g.total]);
+  fillSelect($('#fFunder'), fItems, state.f.funder, 'ทุกแหล่งทุน');
+  fillSelect($('#fOrg'), count(rowsExcept('orgType'), r => r.orgType), state.f.orgType, 'ทุกประเภท');
+}
+
+function kpiTile(o) {
+  return h('div', { class: 'kpi' + (o.lead ? ' lead' : '') },
+    h('div', { class: 'label' }, h('span', { class: 'k-ico' }, icon(o.icon, 17)), o.label),
+    h('div', { class: 'value' }, o.value, o.unit ? h('small', null, o.unit) : null),
+    o.meter != null ? h('div', { class: 'meter', role: 'img', 'aria-label': o.meterLabel }, h('span', { style: `width:${(o.meter * 100).toFixed(1)}%` })) : null,
+    o.extra || null,
+    o.foot ? h('div', { class: 'foot' }, o.foot) : null);
+}
+function renderKPIs(rows) {
+  const el = $('#kpis');
+  el.textContent = '';
+  const n = rows.length;
+  const orgs = new Set(rows.map(r => r.org.replace(/\s+/g, '').toLowerCase())).size;
+  const provs = count(rows, r => r.province !== 'ไม่ระบุ' ? r.province : '');
+  const th = rows.filter(r => r.bureaus.length).length;
+  const topB = count(rows.flatMap(r => r.bureaus), x => x)[0];
+  const of = rows.filter(r => r.funders.length).length;
+  const topF = count(rows.flatMap(r => r.funders), x => x)[0];
+  const contact = rows.filter(r => r.coordinator && r.phoneHref).length;
+
+  const comp = h('div', { class: 'comp', role: 'img', 'aria-label': 'สัดส่วนภาคีตามประเด็น' });
+  const legend = h('div', { class: 'comp-legend' });
+  for (const iss of visibleIssues()) {
+    const v = rows.filter(r => r.issue === iss.key).length;
+    if (!v) continue;
+    const seg = h('i', { 'data-issue': iss.key, style: `flex:${v} 1 0;background:${iss.color}` });
+    bindTip(seg, () => h('div', null, h('div', { class: 'tt' }, iss.name), h('div', { class: 'tot', style: 'border:0;margin:0;padding:0' }, h('span', null, 'ภาคี'), h('b', null, `${fmt(v)} ราย (${pct(v, n)})`))));
+    comp.append(seg);
+    legend.append(h('span', null, h('i', { style: `--c:${iss.color}` }), iss.name, h('b', null, fmt(v))));
+  }
+  el.append(
+    kpiTile({ lead: true, icon: 'network', label: 'ภาคีดำเนินการทั้งหมด', value: fmt(n), unit: 'ราย', extra: h('div', null, n ? comp : null, legend),
+      foot: `จาก ${fmt(orgs)} องค์กร/หน่วยงาน (บางองค์กรมีผู้ประสานงานหลายคน)` }),
+    kpiTile({ icon: 'pin', label: 'จังหวัดที่ครอบคลุม', value: fmt(provs.length), unit: 'จังหวัด',
+      foot: provs[0] ? `มากที่สุด: ${provs[0][0]} (${fmt(provs[0][1])} ราย)` : '–' }),
+    kpiTile({ icon: 'wallet', label: 'รับทุน สสส.', value: pct(th, n), unit: `${fmt(th)} ราย`, meter: n ? th / n : 0, meterLabel: `รับทุน สสส. ${pct(th, n)}`,
+      foot: topB ? `พบมากสุด: ${topB[0]} (${fmt(topB[1])} ราย)` : 'ไม่มีข้อมูลสำนัก' }),
+    kpiTile({ icon: 'coins', label: 'มีแหล่งทุนอื่น', value: pct(of, n), unit: `${fmt(of)} ราย`, meter: n ? of / n : 0, meterLabel: `มีแหล่งทุนอื่น ${pct(of, n)}`,
+      foot: topF ? `พบมากสุด: ${topF[0]} (${fmt(topF[1])} ราย)` : 'ไม่มีข้อมูลแหล่งทุนอื่น' }),
+    kpiTile({ icon: 'phone', label: 'ข้อมูลติดต่อครบ', value: pct(contact, n), unit: `${fmt(contact)} ราย`, meter: n ? contact / n : 0, meterLabel: `ข้อมูลติดต่อครบ ${pct(contact, n)}`,
+      foot: 'มีชื่อผู้ประสานงานและเบอร์โทรที่ใช้ได้' })
+  );
+}
+
+function renderIssueCards(rows) {
+  const el = $('#issues');
+  el.textContent = '';
+  el.classList.toggle('has-sel', state.f.issues.size > 0);
+  const total = rows.length;
+  for (const iss of state.issues) {
+    const sub = rows.filter(r => r.issue === iss.key);
+    const n = sub.length;
+    const provs = count(sub, r => r.province !== 'ไม่ระบุ' ? r.province : '');
+    const th = sub.filter(r => r.bureaus.length).length;
+    const pressed = state.f.issues.has(iss.key);
+    const card = h('div', { class: 'issue', role: 'button', tabindex: '0', style: `--c:${iss.color}`, 'aria-pressed': String(pressed),
+      'aria-label': `ประเด็น${iss.name} ${n} ราย ${pressed ? '(เลือกอยู่)' : '(กดเพื่อกรอง)'}` },
+      h('div', { class: 'top' }, h('span', { class: 'ic' }, icon(iss.icon, 22)),
+        h('div', null, h('div', { class: 'sub' }, 'ประเด็น'), h('h3', null, iss.name))),
+      h('div', { class: 'row' }, h('div', { class: 'count' }, fmt(n), h('small', null, 'ภาคี')), h('div', { class: 'share' }, `${pct(n, total)} ของทั้งหมด`)),
+      h('div', { class: 'bar' }, h('span', { style: `width:${total ? (n / total * 100).toFixed(1) : 0}%` })),
+      h('div', { class: 'meta' },
+        h('div', null, h('b', null, fmt(provs.length)), h('span', null, 'จังหวัด')),
+        h('div', null, h('b', null, pct(th, n)), h('span', null, 'รับทุน สสส.'))),
+      h('div', { class: 'tops' }, provs.slice(0, 3).map(([p, c]) => h('span', { class: 'tag' }, p, h('b', null, fmt(c))))));
+    card.addEventListener('click', () => toggleIssue(iss.key));
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleIssue(iss.key); } });
+    el.append(card);
+  }
+}
+
+function renderCharts() {
+  // จังหวัด (แผนที่ + แท่ง)
+  const pRows = rowsExcept('province');
+  const pGroups = group(pRows, r => [r.province]).sort(byTotal);
+  const pick = key => v => setFilter(key, v);
+  if (state.views.map === 'table') renderGroupTable($('#mapBody'), pGroups, 'จังหวัด');
+  else renderMap($('#mapBody'), pGroups);
+  if (state.views.province === 'table') renderGroupTable($('#provBody'), pGroups, 'จังหวัด');
+  else renderBars($('#provBody'), pGroups, { selected: state.f.province, onPick: pick('province'), labelWidth: '112px' });
+
+  // สำนัก สสส.
+  const bRows = rowsExcept('bureau');
+  const bGroups = group(bRows, r => r.bureaus.length ? r.bureaus : ['ไม่ระบุ']).sort((a, b) =>
+    (a.key === 'ไม่ระบุ') - (b.key === 'ไม่ระบุ') || byTotal(a, b));
+  const bNone = bRows.filter(r => !r.bureaus.length).length;
+  $('#bureauHint').textContent = `รับทุน สสส. ${fmt(bRows.length - bNone)} ราย · ไม่ระบุ ${fmt(bNone)} ราย · 1 รายอาจรับทุนหลายสำนัก`;
+  if (state.views.bureau === 'table') renderGroupTable($('#bureauBody'), bGroups, 'สำนัก');
+  else renderBars($('#bureauBody'), bGroups, { selected: state.f.bureau, onPick: pick('bureau'), labelWidth: '96px' });
+
+  // แหล่งทุนอื่น
+  const fRows = rowsExcept('funder');
+  const fGroups = group(fRows, r => r.funders).sort(byTotal);
+  const fHas = fRows.filter(r => r.funders.length).length;
+  $('#funderHint').textContent = `ระบุแหล่งทุนอื่น ${fmt(fHas)} จาก ${fmt(fRows.length)} ราย (${pct(fHas, fRows.length)}) · คลิกแถวเพื่อกรอง`;
+  const fEmpty = 'ภาคีในตัวกรองนี้ไม่ได้ระบุแหล่งทุนอื่น';
+  if (state.views.funder === 'table') renderGroupTable($('#funderBody'), fGroups, 'แหล่งทุน', { emptyMsg: fEmpty });
+  else renderBars($('#funderBody'), fGroups, { selected: state.f.funder, onPick: pick('funder'), labelWidth: '168px', emptyMsg: fEmpty });
+
+  // ประเภทองค์กร
+  const oGroups = group(rowsExcept('orgType'), r => [r.orgType]).sort((a, b) => (a.key === ORG_OTHER) - (b.key === ORG_OTHER) || byTotal(a, b));
+  if (state.views.org === 'table') renderGroupTable($('#orgBody'), oGroups, 'ประเภทองค์กร');
+  else renderBars($('#orgBody'), oGroups, { selected: state.f.orgType, onPick: pick('orgType'), labelWidth: '176px' });
+
+  // กิจกรรม
+  const aRows = state.rows.filter(r => passes(r)).filter(r => r.activity);
+  const aAll = group(aRows, r => [r.activity]).sort(byTotal);
+  const aTop = aAll.slice(0, 10);
+  const aEmpty = 'ภาคีในตัวกรองนี้ยังไม่ได้กรอกกิจกรรม/ประเด็นงาน';
+  $('#actHint').textContent = aAll.length ? `10 อันดับแรกจาก ${fmt(aAll.length)} กิจกรรม · ค้นหาชื่อกิจกรรมได้ในช่องค้นหา` : 'ยังไม่มีข้อมูลกิจกรรม';
+  if (state.views.activity === 'table') renderGroupTable($('#actBody'), aTop, 'กิจกรรม/โครงการ', { emptyMsg: aEmpty });
+  else renderBars($('#actBody'), aTop, { labelWidth: 'minmax(0,1.25fr)', emptyMsg: aEmpty });
+}
+
+/* ---------- Directory table ---------- */
+const COLS = [
+  { key: 'issue', label: 'ประเด็น', val: r => state.issueIndex.get(r.issue) * 100000 + (parseInt(r.no, 10) || 0) },
+  { key: 'org', label: 'องค์กร/หน่วยงาน', val: r => r.org },
+  { key: 'province', label: 'จังหวัด', val: r => r.province },
+  { key: 'bureau', label: 'ทุน สสส.', val: r => r.bureaus.join(', ') },
+  { key: 'funder', label: 'ทุนอื่น', val: r => r.funders.join(', ') },
+  { key: 'activity', label: 'กิจกรรม/ประเด็นงาน', val: r => r.activity },
+  { key: 'coordinator', label: 'ผู้ประสานงาน', val: r => r.coordinator },
+  { key: 'phone', label: 'โทรศัพท์', val: r => r.phoneDigits }
+];
+function sortRows(rows) {
+  const col = COLS.find(c => c.key === state.sort.key) || COLS[0];
+  const dir = state.sort.dir;
+  return rows.slice().sort((a, b) => {
+    const x = col.val(a), y = col.val(b);
+    if (x === '' && y !== '') return 1;
+    if (y === '' && x !== '') return -1;
+    const c = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'th');
+    return c * dir || a._i - b._i;
+  });
+}
+function issueBadge(key) {
+  const iss = state.issues[state.issueIndex.get(key)];
+  return h('span', { class: 'ibadge', style: `--c:${iss ? iss.color : 'var(--i0)'}` }, h('i'), key);
+}
+function renderTable(rows) {
+  const el = $('#tableBody');
+  el.textContent = '';
+  const sorted = sortRows(rows);
+  const size = state.pageSize || sorted.length || 1;
+  const pages = Math.max(1, Math.ceil(sorted.length / size));
+  state.page = Math.min(state.page, pages);
+  const start = (state.page - 1) * size;
+  const pageRows = sorted.slice(start, start + size);
+
+  const thead = h('thead', null, h('tr', null, h('th', null, '#'),
+    COLS.map(c => {
+      const on = state.sort.key === c.key;
+      return h('th', { 'data-sort': c.key, class: on ? 'sorted' : null, tabindex: '0', 'aria-sort': on ? (state.sort.dir > 0 ? 'ascending' : 'descending') : 'none' },
+        c.label, h('span', { class: 'arr' }, on ? (state.sort.dir > 0 ? '▲' : '▼') : '↕'));
+    })));
+  thead.querySelectorAll('th[data-sort]').forEach(th => {
+    const go = () => {
+      const k = th.dataset.sort;
+      state.sort = { key: k, dir: state.sort.key === k ? -state.sort.dir : 1 };
+      renderTable(rows);
+    };
+    th.addEventListener('click', go);
+    th.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  });
+
+  const tbody = h('tbody');
+  if (!pageRows.length) tbody.append(h('tr', null, h('td', { colspan: COLS.length + 1 }, emptyNote())));
+  pageRows.forEach((r, i) => {
+    const tr = h('tr', { tabindex: '0', 'aria-label': `${r.org} — ดูรายละเอียด` },
+      h('td', { class: 'idx' }, fmt(start + i + 1)),
+      h('td', null, issueBadge(r.issue)),
+      h('td', null, h('span', { class: 'org' }, r.org), h('span', { class: 'org-type' }, r.orgType)),
+      h('td', null, r.province, r.provinceRaw && r.provinceRaw !== r.province ? h('span', { class: 'org-type', title: 'ค่าในชีต' }, `ในชีต: ${r.provinceRaw}`) : null),
+      h('td', null, r.bureaus.length ? r.bureaus.map(b => h('span', { class: 'btag' }, b)) : h('span', { class: 'dim' }, r.bureauRaw ? `(${r.bureauRaw})` : '–')),
+      h('td', null, r.funders.length ? h('span', { class: 'clamp', title: r.otherRaw }, r.funders.join(', ')) : h('span', { class: 'dim' }, '–')),
+      h('td', null, r.activity ? h('span', { class: 'clamp', title: r.activityRaw }, r.activity) : h('span', { class: 'dim' }, '–')),
+      h('td', null, r.coordinator || h('span', { class: 'dim' }, '–')),
+      h('td', null, r.phoneHref ? h('a', { class: 'tel', href: r.phoneHref, onclick: e => e.stopPropagation() }, r.phoneText) : (r.phoneText || h('span', { class: 'dim' }, '–'))));
+    tr.addEventListener('click', () => openDetail(r));
+    tr.addEventListener('keydown', e => { if (e.key === 'Enter') openDetail(r); });
+    tbody.append(tr);
+  });
+
+  const sizeSel = h('select', { 'aria-label': 'จำนวนแถวต่อหน้า', onchange: e => { state.pageSize = +e.target.value; state.page = 1; renderTable(rows); } },
+    [15, 30, 50, 0].map(v => h('option', { value: v }, v ? `${v} แถว/หน้า` : 'แสดงทั้งหมด')));
+  sizeSel.value = String(state.pageSize);
+  const go = p => { state.page = p; renderTable(rows); };
+  const pager = h('div', { class: 'pager' },
+    h('span', null, sorted.length ? `แสดง ${fmt(start + 1)}–${fmt(start + pageRows.length)} จาก ${fmt(sorted.length)} ราย` : 'ไม่มีข้อมูล'),
+    h('div', { class: 'pg' }, sizeSel,
+      h('button', { class: 'btn', type: 'button', disabled: state.page <= 1, onclick: () => go(state.page - 1), 'aria-label': 'หน้าก่อนหน้า' }, '‹ ก่อนหน้า'),
+      h('span', null, `หน้า ${fmt(state.page)} / ${fmt(pages)}`),
+      h('button', { class: 'btn', type: 'button', disabled: state.page >= pages, onclick: () => go(state.page + 1), 'aria-label': 'หน้าถัดไป' }, 'ถัดไป ›')));
+  el.append(h('div', { class: 'tbl-wrap' }, h('table', null, thead, tbody)), pager);
+}
+
+/* ---------- Detail dialog ---------- */
+function openDetail(r) {
+  const dlg = $('#detail');
+  const iss = state.issues[state.issueIndex.get(r.issue)];
+  $('#dlgHead').style.setProperty('--c', iss ? iss.color : 'var(--i0)');
+  $('#dlgIssue').replaceChildren(issueBadge(r.issue));
+  $('#dlgTitle').textContent = r.org;
+  $('#dlgType').textContent = r.orgType + (r.no ? ` · ลำดับที่ ${r.no} ในประเด็น` : '');
+  const dl = $('#dlgList');
+  dl.textContent = '';
+  const item = (k, v) => dl.append(h('dt', null, k), h('dd', null, v || h('span', { class: 'dim' }, '–')));
+  item('จังหวัด', r.province + (r.provinceRaw && r.provinceRaw !== r.province ? ` (ในชีต: ${r.provinceRaw})` : ''));
+  item('รับทุน สสส.', r.bureauRaw ? [r.bureaus.map(b => h('span', { class: 'btag' }, b)), r.bureaus.length ? '' : r.bureauRaw] : '');
+  item('รับทุนอื่น', r.otherRaw);
+  item('กิจกรรม/ประเด็นงาน', r.activityRaw);
+  item('ผู้ประสานงาน', r.coordinator);
+  item('โทรศัพท์', r.phoneHref ? h('a', { class: 'tel', href: r.phoneHref }, r.phoneText) : r.phoneText);
+  item('ที่อยู่', r.address);
+  if (r.sheetRow) item('ตำแหน่งในชีต', `แถวที่ ${r.sheetRow}`);
+  const foot = $('#dlgFoot');
+  foot.textContent = '';
+  if (r.phoneHref) foot.append(h('a', { class: 'btn', href: r.phoneHref }, icon('phone', 15), 'โทร'));
+  if (r.address) foot.append(h('a', { class: 'btn', href: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.address), target: '_blank', rel: 'noopener' }, icon('external', 15), 'เปิดใน Google Maps'));
+  foot.append(h('button', { class: 'btn primary', type: 'button', onclick: () => dlg.close() }, 'ปิด'));
+  hideTip();
+  if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+}
+
+/* ---------- CSV ---------- */
+function exportCSV() {
+  if (!state.rows) return;
+  const rows = sortRows(state.rows.filter(r => passes(r)));
+  const head = ['ประเด็น', 'ลำดับ', 'ชื่อองค์กร/หน่วยงาน', 'ประเภทองค์กร (จัดกลุ่มอัตโนมัติ)', 'รับทุน สสส. (ระบุสำนัก)', 'รับทุนอื่น',
+    'พื้นที่จังหวัด', 'กิจกรรมหรือประเด็นงาน', 'ผู้ประสานงาน', 'เบอร์โทร', 'ที่อยู่'];
+  const cell = v => {
+    let s = String(v == null ? '' : v);
+    if (/^[=+\-@]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g, '""') + '"';
+  };
+  const lines = [head, ...rows.map(r => [r.issueRaw || r.issue, r.no, r.org, r.orgType, r.bureauRaw, r.otherRaw, r.province, r.activityRaw, r.coordinator, r.phoneText, r.address])]
+    .map(a => a.map(cell).join(','));
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = h('a', { href: URL.createObjectURL(blob), download: `ภาคีดำเนินการ_${new Date().toISOString().slice(0, 10)}.csv` });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* ======================================================================
+   Render orchestration
+   ====================================================================== */
+function toggleIssue(key) {
+  if (state.f.issues.has(key)) state.f.issues.delete(key); else state.f.issues.add(key);
+  state.page = 1; render();
+}
+function setFilter(key, value) {
+  state.f[key] = state.f[key] === value ? '' : value;
+  state.page = 1; render();
+}
+function render() {
+  if (!state.rows) return;
+  hideTip();
+  const rows = state.rows.filter(r => passes(r));
+  $('#heroSub').textContent = `รวม ${fmt(state.issues.length)} ประเด็น: ${state.issues.map(i => i.name).join(' · ')}`;
+  const active = state.f.issues.size || state.f.province || state.f.bureau || state.f.funder || state.f.orgType || state.f.q;
+  $('#resultCount').replaceChildren('แสดง ', h('b', null, fmt(rows.length)), ` จาก ${fmt(state.rows.length)} ภาคี`);
+  $('#btnReset').disabled = !active;
+  renderChips();
+  renderSelects();
+  legendFill();
+  viewToggles();
+  renderKPIs(rows);
+  renderIssueCards(rowsExcept('issues'));
+  renderCharts();
+  renderComplete($('#completeBody'), rows);
+  renderTable(rows);
+  renderFooter();
+}
+function renderFooter() {
+  const s = state.meta.source || {};
+  $('#footSource').textContent = state.mode === 'live'
+    ? `แหล่งข้อมูล: Google Sheets “${s.spreadsheet || ''}” · ชีต ${s.sheet || ''}`
+    : `แหล่งข้อมูล: ไฟล์ ${s.spreadsheet || 'Excel'} · ชีต ${s.sheet || ''} (ข้อมูลตัวอย่าง)`;
+  $('#footTime').textContent = state.meta.fetchedAt ? `ดึงข้อมูลเมื่อ ${fmtTime(state.meta.fetchedAt)}` : '';
+}
+const fmtTime = iso => {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short' }).format(d) + ' น.';
+};
+function renderPlaceholders(msg) {
+  ['#mapBody', '#provBody', '#bureauBody', '#funderBody', '#orgBody', '#actBody', '#completeBody', '#tableBody'].forEach(s => {
+    $(s).replaceChildren(emptyNote(msg));
+  });
+}
+
+/* ======================================================================
+   Data loading (Google Apps Script)
+   ====================================================================== */
+function checkPayload(d) {
+  if (!d || d.ok === false || !Array.isArray(d.rows)) {
+    const err = new Error((d && d.error) ? `Apps Script แจ้งข้อผิดพลาด: ${d.error}` : 'รูปแบบข้อมูลที่ได้รับจาก Apps Script ไม่ถูกต้อง');
+    err.api = true; throw err;
+  }
+  return d;
+}
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = '__gas_cb_' + Date.now();
+    const s = document.createElement('script');
+    const done = () => { clearTimeout(t); delete window[cb]; s.remove(); };
+    const t = setTimeout(() => { done(); reject(new Error('หมดเวลารอการตอบกลับจาก Google Apps Script')); }, 20000);
+    window[cb] = d => { done(); resolve(d); };
+    s.onerror = () => { done(); reject(new Error('เชื่อมต่อ Google Apps Script ไม่สำเร็จ')); };
+    s.src = url + '&callback=' + cb;
+    document.body.append(s);
+  });
+}
+async function fetchGAS(base) {
+  const url = base + (base.includes('?') ? '&' : '?') + '_=' + Date.now();
+  try {
+    const res = await fetch(url, { redirect: 'follow' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return checkPayload(await res.json());
+  } catch (err) {
+    if (err.api) throw err;
+    return checkPayload(await jsonp(url));   // สำรอง: JSONP เมื่อ fetch ถูกบล็อก
+  }
+}
+function setStatus(kind, text) {
+  const el = $('#status');
+  el.dataset.kind = kind;
+  const ico = { loading: 'loader', live: 'check', snapshot: 'info', error: 'alert' }[kind];
+  el.querySelector('.st-ico').replaceChildren(icon(ico, 14));
+  $('#statusText').textContent = text;
+}
+function showBanner(msg, sub) {
+  $('#bannerText').textContent = msg;
+  $('#bannerSub').textContent = sub || '';
+  $('#banner').classList.add('show');
+}
+const hideBanner = () => $('#banner').classList.remove('show');
+
+let loading = false;
+async function load() {
+  if (loading) return;
+  loading = true;
+  document.body.classList.add('busy');
+  $('#btnRefresh').classList.add('spinning');
+  if (!state.rows) renderPlaceholders(CONFIG.GAS_URL ? 'กำลังดึงข้อมูลจาก Google Sheets…' : 'กำลังโหลดข้อมูล…');
+  setStatus('loading', CONFIG.GAS_URL ? 'กำลังดึงข้อมูลจาก Google Sheets…' : 'กำลังโหลด…');
+  try {
+    let payload;
+    if (CONFIG.GAS_URL) { payload = await fetchGAS(CONFIG.GAS_URL); state.mode = 'live'; }
+    else if (SNAPSHOT) { payload = SNAPSHOT; state.mode = 'snapshot'; }
+    else throw Object.assign(new Error('ยังไม่ได้ตั้งค่า GAS_URL'), { api: true });
+    ingest(payload);
+    render();
+    hideBanner();
+    if (state.mode === 'live') {
+      const t = new Intl.DateTimeFormat('th-TH', { timeStyle: 'short' }).format(new Date(payload.fetchedAt || Date.now()));
+      setStatus('live', `เชื่อมต่อ Google Sheets · อัปเดต ${t} น.`);
+    } else {
+      setStatus('snapshot', 'ข้อมูลตัวอย่างจากไฟล์ Excel · ยังไม่เชื่อม Google Sheets');
+    }
+  } catch (err) {
+    setStatus('error', 'ดึงข้อมูลไม่สำเร็จ');
+    showBanner('ดึงข้อมูลจาก Google Sheets ไม่สำเร็จ — ' + err.message,
+      'ตรวจสอบว่า Deploy เป็น “เว็บแอป” ตั้งค่าผู้มีสิทธิ์เข้าถึงเป็น “ทุกคน (Anyone)” และใช้ URL ที่ลงท้ายด้วย /exec' +
+      (state.rows ? ' · ขณะนี้แสดงข้อมูลชุดล่าสุดที่ดึงได้' : ''));
+    if (!state.rows) renderPlaceholders('ยังไม่มีข้อมูล — กด “ลองอีกครั้ง” ด้านบน');
+  } finally {
+    loading = false;
+    document.body.classList.remove('busy');
+    $('#btnRefresh').classList.remove('spinning');
+  }
+}
+
+/* ======================================================================
+   Theme & init
+   ====================================================================== */
+function currentTheme() {
+  return document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+function syncThemeIcon() {
+  const dark = currentTheme() === 'dark';
+  $('#btnTheme').replaceChildren(icon(dark ? 'sun' : 'moon'));
+}
+function initTheme() {
+  try { const t = localStorage.getItem('partner-dash-theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (e) {}
+  syncThemeIcon();
+  $('#btnTheme').addEventListener('click', () => {
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('partner-dash-theme', next); } catch (e) {}
+    syncThemeIcon();
+  });
+}
+function init() {
+  hydrateIcons();
+  initTheme();
+  $('#btnRefresh').addEventListener('click', load);
+  $('#btnRetry').addEventListener('click', load);
+  $('#btnCsv').addEventListener('click', exportCSV);
+  $('#btnReset').addEventListener('click', () => {
+    state.f = { issues: new Set(), province: '', bureau: '', funder: '', orgType: '', q: '' };
+    $('#fSearch').value = ''; state.page = 1; render();
+  });
+  [['#fProvince', 'province'], ['#fBureau', 'bureau'], ['#fFunder', 'funder'], ['#fOrg', 'orgType']].forEach(([sel, key]) => {
+    $(sel).addEventListener('change', e => { state.f[key] = e.target.value; state.page = 1; render(); });
+  });
+  let tmr;
+  $('#fSearch').addEventListener('input', e => {
+    clearTimeout(tmr);
+    tmr = setTimeout(() => { state.f.q = clean(e.target.value).toLowerCase(); state.page = 1; render(); }, 180);
+  });
+  $('#dlgClose').addEventListener('click', () => $('#detail').close());
+  $('#detail').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+  addEventListener('scroll', hideTip, { passive: true });
+  load();
+  if (CONFIG.GAS_URL && CONFIG.AUTO_REFRESH_MIN > 0) {
+    setInterval(() => { if (!document.hidden) load(); }, CONFIG.AUTO_REFRESH_MIN * 60000);
+  }
+}
+init();
+})();
+</script>
+</body>
+</html>
